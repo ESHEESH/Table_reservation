@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Table - Sakura Sushi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-transition">
+    <nav class="nav">
+        <a href="index.html" class="nav-back" style="text-decoration:none;color:inherit;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Home
+        </a>
+        <div class="nav-logo">Sakura Sushi</div>
+        <div></div>
+    </nav>
+
+    <header class="page-header">
+        <h1 class="page-title">Select Your Table</h1>
+        <p class="page-subtitle">Click on an available table to view details and reserve</p>
+        
+        <div class="table-legend">
+            <div class="legend-item">
+                <div class="legend-dot" style="background: var(--color-success);"></div>
+                Available
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: var(--color-error);"></div>
+                Occupied
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: var(--color-warning);"></div>
+                Selected
+            </div>
+        </div>
+    </header>
+
+    <div class="table-grid-container">
+        <div class="table-grid" id="table-grid"></div>
+    </div>
+
+    <div class="slide-overlay" id="slide-overlay"></div>
+    <div class="slide-panel" id="slide-panel">
+        <button class="slide-close" id="slide-close">&times;</button>
+        <h2 class="panel-title" id="panel-title">Table Details</h2>
+        
+        <div class="panel-section">
+            <div class="panel-label">Table Number</div>
+            <div class="panel-value" id="panel-table-num">-</div>
+        </div>
+        
+        <div class="panel-section">
+            <div class="panel-label">Capacity</div>
+            <div class="panel-value" id="panel-capacity">-</div>
+        </div>
+        
+        <div class="panel-section">
+            <div class="panel-label">Reservation Fee</div>
+            <div class="panel-value" id="panel-price">-</div>
+        </div>
+        
+        <div class="panel-section">
+            <div class="panel-label">Status</div>
+            <div class="panel-value" id="panel-status">-</div>
+        </div>
+        
+        <div class="panel-section">
+            <div class="panel-label">Features</div>
+            <ul class="panel-features" id="panel-features">
+                <li>Premium seating</li>
+            </ul>
+        </div>
+        
+        <div class="panel-buttons">
+            <a href="reservation.html" class="btn btn-primary btn-full" id="btn-reserve">Reserve This Table</a>
+            <a href="menu.html" class="btn btn-secondary btn-full" id="btn-preorder">Pre-Order Food</a>
+        </div>
+    </div>
+
+    <script>
+        // Table data
+        const tables = [
+            { id: 1, table_number: 'T01', capacity: 2, price: 15.00, status: 'available', features: 'Window view, Natural lighting' },
+            { id: 2, table_number: 'T02', capacity: 2, price: 15.00, status: 'available', features: 'Window view, Natural lighting' },
+            { id: 3, table_number: 'T03', capacity: 4, price: 25.00, status: 'available', features: 'Private booth, Quiet corner' },
+            { id: 4, table_number: 'T04', capacity: 4, price: 25.00, status: 'occupied', features: 'Center stage, Sushi bar view' },
+            { id: 5, table_number: 'T05', capacity: 4, price: 25.00, status: 'available', features: 'Standard seating' },
+            { id: 6, table_number: 'T06', capacity: 6, price: 35.00, status: 'available', features: 'Family size, Spacious' },
+            { id: 7, table_number: 'T07', capacity: 6, price: 35.00, status: 'occupied', features: 'Corner private, Quiet' },
+            { id: 8, table_number: 'T08', capacity: 6, price: 35.00, status: 'available', features: 'Sushi bar view' },
+            { id: 9, table_number: 'T09', capacity: 8, price: 50.00, status: 'available', features: 'VIP section, Premium service' },
+            { id: 10, table_number: 'T10', capacity: 8, price: 50.00, status: 'occupied', features: 'VIP section, Premium service' },
+            { id: 11, table_number: 'T11', capacity: 2, price: 12.00, status: 'available', features: 'Counter seating, Watch chef' },
+            { id: 12, table_number: 'T12', capacity: 2, price: 12.00, status: 'available', features: 'Counter seating, Watch chef' },
+        ];
+
+        // QuickSort implementation
+        function quickSort(arr, low, high, key = 'capacity') {
+            if (low < high) {
+                const pi = partition(arr, low, high, key);
+                quickSort(arr, low, pi - 1, key);
+                quickSort(arr, pi + 1, high, key);
+            }
+        }
+
+        function partition(arr, low, high, key) {
+            const pivot = arr[high][key];
+            let i = low - 1;
+            for (let j = low; j < high; j++) {
+                if (arr[j][key] <= pivot) {
+                    i++;
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+            }
+            [arr[i + 1], arr[high]] = [arr[high], arr[i + 1]];
+            return i + 1;
+        }
+
+        // Sort tables by capacity
+        quickSort(tables, 0, tables.length - 1, 'capacity');
+
+        // Render table grid
+        const grid = document.getElementById('table-grid');
+        tables.forEach(table => {
+            const card = document.createElement('div');
+            card.className = `table-card ${table.status}`;
+            card.dataset.id = table.id;
+            card.innerHTML = `
+                <div class="table-status ${table.status}"></div>
+                <div class="table-number">${table.table_number}</div>
+                <div class="table-capacity">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px;">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    ${table.capacity} seats
+                </div>
+                <div class="table-price">$${table.price.toFixed(2)}</div>
+            `;
+            card.addEventListener('click', () => openPanel(table));
+            grid.appendChild(card);
+        });
+
+        // Slide panel
+        const overlay = document.getElementById('slide-overlay');
+        const panel = document.getElementById('slide-panel');
+        let selectedTableId = null;
+
+        function openPanel(table) {
+            if (table.status === 'occupied') {
+                alert('This table is already occupied. Please select another.');
+                return;
+            }
+            selectedTableId = table.id;
+            localStorage.setItem('selected_table_id', table.id);
+            localStorage.setItem('selected_table_price', table.price);
+            
+            document.getElementById('panel-table-num').textContent = table.table_number;
+            document.getElementById('panel-capacity').textContent = `${table.capacity} guests`;
+            document.getElementById('panel-price').textContent = `$${table.price.toFixed(2)}`;
+            document.getElementById('panel-status').textContent = table.status.charAt(0).toUpperCase() + table.status.slice(1);
+            
+            const featuresList = document.getElementById('panel-features');
+            featuresList.innerHTML = '';
+            table.features.split(',').forEach(f => {
+                const li = document.createElement('li');
+                li.textContent = f.trim();
+                featuresList.appendChild(li);
+            });
+            
+            overlay.classList.add('active');
+            panel.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePanel() {
+            overlay.classList.remove('active');
+            panel.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('slide-close').addEventListener('click', closePanel);
+        overlay.addEventListener('click', closePanel);
+    </script>
+</body>
+</html>

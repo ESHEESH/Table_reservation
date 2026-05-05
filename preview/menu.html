@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pre-Order Menu - Sakura Sushi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-transition">
+    <nav class="nav">
+        <a href="tables.html" class="nav-back" style="text-decoration:none;color:inherit;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back
+        </a>
+        <div class="nav-logo">Sakura Sushi</div>
+        <button class="cart-toggle btn btn-glass" style="padding: 10px 16px;" id="cart-toggle">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 2L6 9H3l2.5 9h13L21 9h-3l-3-7H9z"/>
+                <circle cx="9" cy="20" r="1.5"/>
+                <circle cx="17" cy="20" r="1.5"/>
+            </svg>
+            <span class="cart-count" id="cart-count" style="position: static; margin-left: 8px; width: auto; height: auto; background: none; color: var(--color-accent);">0</span>
+        </button>
+    </nav>
+
+    <header class="page-header">
+        <h1 class="page-title">Pre-Order Your Meal</h1>
+        <p class="page-subtitle">Select your favorite dishes - they'll be ready when you arrive</p>
+    </header>
+
+    <div class="table-grid-container">
+        <div class="category-tabs">
+            <button class="tab-btn active" data-category="all">All</button>
+            <button class="tab-btn" data-category="sushi">Sushi</button>
+            <button class="tab-btn" data-category="sashimi">Sashimi</button>
+            <button class="tab-btn" data-category="rolls">Rolls</button>
+            <button class="tab-btn" data-category="appetizers">Appetizers</button>
+            <button class="tab-btn" data-category="drinks">Drinks</button>
+        </div>
+
+        <div class="menu-grid" id="menu-grid"></div>
+    </div>
+
+    <div class="slide-overlay" id="cart-overlay"></div>
+    <div class="slide-panel" id="cart-panel">
+        <button class="slide-close" id="cart-close">&times;</button>
+        <h2 class="panel-title">Your Pre-Order</h2>
+        
+        <div class="cart-items" id="cart-items" style="min-height: 200px;">
+            <p style="text-align: center; color: var(--color-text-muted); padding: 40px 0;">
+                Your cart is empty<br><small>Add items from the menu</small>
+            </p>
+        </div>
+        
+        <div class="cart-summary">
+            <div class="summary-row">
+                <span>Subtotal</span>
+                <span class="cart-subtotal" id="cart-subtotal">$0.00</span>
+            </div>
+            <div class="summary-row">
+                <span>Tax (8%)</span>
+                <span class="cart-tax" id="cart-tax">$0.00</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total</span>
+                <span class="cart-total" id="cart-total">$0.00</span>
+            </div>
+        </div>
+        
+        <div class="panel-buttons">
+            <a href="reservation.html" class="btn btn-primary btn-full">Proceed to Reservation</a>
+            <button class="btn btn-glass btn-full" id="clear-cart">Clear Cart</button>
+        </div>
+    </div>
+
+    <script>
+        // Menu items data
+        const menuItems = [
+            { id: 1, name: 'Salmon Nigiri', description: 'Fresh Norwegian salmon over seasoned sushi rice', price: 8.50, category: 'sushi', image: 'images/sushi/salmon-nigiri.jpg' },
+            { id: 2, name: 'Tuna Nigiri', description: 'Premium bluefin tuna over seasoned sushi rice', price: 10.00, category: 'sushi', image: 'images/sushi/salmon-nigiri.jpg' },
+            { id: 3, name: 'Ebi Nigiri', description: 'Sweet shrimp over seasoned sushi rice', price: 9.00, category: 'sushi', image: 'images/sushi/salmon-nigiri.jpg' },
+            { id: 4, name: 'Tamago Nigiri', description: 'Japanese sweet egg omelette over rice', price: 6.00, category: 'sushi', image: 'images/sushi/salmon-nigiri.jpg' },
+            { id: 5, name: 'Tuna Sashimi', description: 'Thinly sliced premium bluefin tuna, 6 pieces', price: 14.00, category: 'sashimi', image: 'images/sushi/tuna-sashimi.jpg' },
+            { id: 6, name: 'Salmon Sashimi', description: 'Thinly sliced fresh Norwegian salmon, 6 pieces', price: 12.00, category: 'sashimi', image: 'images/sushi/tuna-sashimi.jpg' },
+            { id: 7, name: 'Yellowtail Sashimi', description: 'Butter-soft yellowtail slices, 6 pieces', price: 15.00, category: 'sashimi', image: 'images/sushi/tuna-sashimi.jpg' },
+            { id: 8, name: 'Mixed Sashimi', description: 'Assorted chef selection of fresh fish, 12 pieces', price: 22.00, category: 'sashimi', image: 'images/sushi/tuna-sashimi.jpg' },
+            { id: 9, name: 'Dragon Roll', description: 'Shrimp tempura inside, eel and avocado on top', price: 16.00, category: 'rolls', image: 'images/sushi/dragon-roll.jpg' },
+            { id: 10, name: 'California Roll', description: 'Crab, avocado, and cucumber roll', price: 10.00, category: 'rolls', image: 'images/sushi/dragon-roll.jpg' },
+            { id: 11, name: 'Spicy Tuna Roll', description: 'Spicy tuna with cucumber and sesame seeds', price: 11.00, category: 'rolls', image: 'images/sushi/dragon-roll.jpg' },
+            { id: 12, name: 'Rainbow Roll', description: 'California roll topped with assorted fresh fish', price: 15.00, category: 'rolls', image: 'images/sushi/dragon-roll.jpg' },
+            { id: 13, name: 'Edamame', description: 'Steamed soybeans with sea salt', price: 5.00, category: 'appetizers', image: 'images/sushi/tempura.jpg' },
+            { id: 14, name: 'Miso Soup', description: 'Traditional soybean paste soup with tofu and seaweed', price: 4.00, category: 'appetizers', image: 'images/sushi/tempura.jpg' },
+            { id: 15, name: 'Gyoza', description: 'Pan-fried pork and vegetable dumplings, 6 pieces', price: 7.00, category: 'appetizers', image: 'images/sushi/tempura.jpg' },
+            { id: 16, name: 'Tempura', description: 'Assorted shrimp and vegetable tempura', price: 9.00, category: 'appetizers', image: 'images/sushi/tempura.jpg' },
+            { id: 17, name: 'Japanese Sake', description: 'Warm premium junmai sake, 180ml', price: 8.00, category: 'drinks', image: 'images/sushi/tempura.jpg' },
+            { id: 18, name: 'Green Tea', description: 'Traditional Japanese green tea', price: 3.00, category: 'drinks', image: 'images/sushi/tempura.jpg' },
+            { id: 19, name: 'Ramune', description: 'Japanese marble soda, original flavor', price: 4.00, category: 'drinks', image: 'images/sushi/tempura.jpg' },
+            { id: 20, name: 'Matcha Latte', description: 'Creamy matcha green tea latte', price: 5.50, category: 'drinks', image: 'images/sushi/tempura.jpg' },
+        ];
+
+        // Linked List Node
+        class CartNode {
+            constructor(data) {
+                this.data = data;
+                this.next = null;
+            }
+        }
+
+        // Linked List for Cart
+        class CartLinkedList {
+            constructor() {
+                this.head = null;
+                this.size = 0;
+                this._total = 0;
+            }
+
+            append(item) {
+                const newNode = new CartNode(item);
+                if (!this.head) {
+                    this.head = newNode;
+                } else {
+                    let current = this.head;
+                    while (current.next) current = current.next;
+                    current.next = newNode;
+                }
+                this.size++;
+                this._updateTotal();
+                this.save();
+            }
+
+            remove(itemId) {
+                if (!this.head) return false;
+                if (this.head.data.id === itemId) {
+                    this.head = this.head.next;
+                    this.size--;
+                    this._updateTotal();
+                    this.save();
+                    return true;
+                }
+                let current = this.head;
+                while (current.next && current.next.data.id !== itemId) {
+                    current = current.next;
+                }
+                if (current.next) {
+                    current.next = current.next.next;
+                    this.size--;
+                    this._updateTotal();
+                    this.save();
+                    return true;
+                }
+                return false;
+            }
+
+            find(itemId) {
+                let current = this.head;
+                while (current) {
+                    if (current.data.id === itemId) return current.data;
+                    current = current.next;
+                }
+                return null;
+            }
+
+            updateQuantity(itemId, quantity) {
+                let current = this.head;
+                while (current) {
+                    if (current.data.id === itemId) {
+                        current.data.quantity = quantity;
+                        current.data.subtotal = current.data.price * quantity;
+                        this._updateTotal();
+                        this.save();
+                        return true;
+                    }
+                    current = current.next;
+                }
+                return false;
+            }
+
+            toArray() {
+                const items = [];
+                let current = this.head;
+                while (current) {
+                    items.push(current.data);
+                    current = current.next;
+                }
+                return items;
+            }
+
+            getTotal() {
+                return this._total;
+            }
+
+            _updateTotal() {
+                this._total = 0;
+                let current = this.head;
+                while (current) {
+                    this._total += current.data.subtotal || 0;
+                    current = current.next;
+                }
+            }
+
+            save() {
+                localStorage.setItem('sakura_cart', JSON.stringify(this.toArray()));
+            }
+
+            load() {
+                const stored = localStorage.getItem('sakura_cart');
+                if (stored) {
+                    const items = JSON.parse(stored);
+                    items.forEach(item => {
+                        this.head = null; // reset
+                        this.size = 0;
+                        items.forEach(i => this.append(i));
+                    });
+                }
+            }
+        }
+
+        const cart = new CartLinkedList();
+        // Load from storage
+        const stored = localStorage.getItem('sakura_cart');
+        if (stored) {
+            JSON.parse(stored).forEach(item => cart.append(item));
+        }
+
+        // Render menu
+        const menuGrid = document.getElementById('menu-grid');
+        menuItems.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'menu-item';
+            div.dataset.category = item.category;
+            div.innerHTML = `
+                <img src="${item.image}" alt="${item.name}" class="menu-item-image" onerror="this.style.display='none'; this.parentElement.querySelector('.menu-fallback').style.display='flex';">
+                <div class="menu-item-image menu-fallback" style="display: none; background: linear-gradient(135deg, #1a1a24 0%, #14141B 100%); align-items: center; justify-content: center; font-size: 60px; opacity: 0.3;">
+                    ${({sushi:'\u{1F363}', sashimi:'\u{1F41F}', rolls:'\u{1F359}', appetizers:'\u{1F95F}', drinks:'\u{1F376}'}[item.category] || '\u{1F37D}')}
+                </div>
+                <div class="menu-item-content">
+                    <h3 class="menu-item-name">${item.name}</h3>
+                    <p class="menu-item-desc">${item.description}</p>
+                    <div class="menu-item-footer">
+                        <span class="menu-item-price">$${item.price.toFixed(2)}</span>
+                        <button class="btn btn-primary btn-add-to-cart" data-id="${item.id}" style="padding: 8px 16px; font-size: 14px;">Add to Order</button>
+                    </div>
+                </div>
+            `;
+            menuGrid.appendChild(div);
+        });
+
+        // Category tabs
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const category = btn.dataset.category;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelectorAll('.menu-item').forEach(item => {
+                    item.style.display = (category === 'all' || item.dataset.category === category) ? '' : 'none';
+                });
+            });
+        });
+
+        // Add to cart
+        document.querySelectorAll('.btn-add-to-cart').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const item = menuItems.find(i => i.id === parseInt(btn.dataset.id));
+                const existing = cart.find(item.id);
+                if (existing) {
+                    cart.updateQuantity(item.id, existing.quantity + 1);
+                } else {
+                    cart.append({...item, quantity: 1, subtotal: item.price});
+                }
+                updateCartUI();
+            });
+        });
+
+        // Update cart UI
+        function updateCartUI() {
+            const items = cart.toArray();
+            const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+            document.getElementById('cart-count').textContent = totalItems;
+
+            const cartItemsEl = document.getElementById('cart-items');
+            if (items.length === 0) {
+                cartItemsEl.innerHTML = '<p style="text-align: center; color: var(--color-text-muted); padding: 40px 0;">Your cart is empty<br><small>Add items from the menu</small></p>';
+            } else {
+                cartItemsEl.innerHTML = '';
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'cart-item';
+                    div.innerHTML = `
+                        <img src="${item.image}" alt="${item.name}" class="cart-item-image" onerror="this.style.display='none'">
+                        <div class="cart-item-info">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+                        </div>
+                        <div class="cart-item-qty">x${item.quantity}</div>
+                        <button class="qty-btn btn-remove-item" data-id="${item.id}">&times;</button>
+                    `;
+                    cartItemsEl.appendChild(div);
+                });
+
+                document.querySelectorAll('.btn-remove-item').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        cart.remove(parseInt(btn.dataset.id));
+                        updateCartUI();
+                    });
+                });
+            }
+
+            const subtotal = cart.getTotal();
+            const tax = subtotal * 0.08;
+            const total = subtotal + tax;
+            
+            document.getElementById('cart-subtotal').textContent = '$' + subtotal.toFixed(2);
+            document.getElementById('cart-tax').textContent = '$' + tax.toFixed(2);
+            document.getElementById('cart-total').textContent = '$' + total.toFixed(2);
+            localStorage.setItem('sakura_cart_total', total.toFixed(2));
+        }
+
+        // Cart panel
+        document.getElementById('cart-toggle').addEventListener('click', () => {
+            document.getElementById('cart-overlay').classList.add('active');
+            document.getElementById('cart-panel').classList.add('active');
+        });
+        document.getElementById('cart-close').addEventListener('click', closeCart);
+        document.getElementById('cart-overlay').addEventListener('click', closeCart);
+
+        function closeCart() {
+            document.getElementById('cart-overlay').classList.remove('active');
+            document.getElementById('cart-panel').classList.remove('active');
+        }
+
+        document.getElementById('clear-cart').addEventListener('click', () => {
+            if (confirm('Clear all items from your cart?')) {
+                localStorage.removeItem('sakura_cart');
+                localStorage.removeItem('sakura_cart_total');
+                cart.head = null; cart.size = 0; cart._total = 0;
+                updateCartUI();
+            }
+        });
+
+        updateCartUI();
+    </script>
+</body>
+</html>

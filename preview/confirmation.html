@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservation Confirmed - Sakura Sushi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-transition">
+    <nav class="nav">
+        <a href="index.html" class="nav-back" style="text-decoration:none;color:inherit;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Home
+        </a>
+        <div class="nav-logo">Sakura Sushi</div>
+        <div></div>
+    </nav>
+
+    <div class="confirmation-container">
+        <div class="confirmation-card">
+            <div class="success-animation">
+                <svg class="success-checkmark" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ADE80" stroke-width="3">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+            </div>
+            
+            <h1 class="confirmation-title">Reservation Confirmed!</h1>
+            <p class="confirmation-subtitle">Save your confirmation code for your records</p>
+            
+            <div class="code-display">
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--color-text-muted); margin-bottom: 8px;">Your Reservation Code</div>
+                <div class="code-text" id="confirmation-code">SKR-XXXXXX</div>
+            </div>
+            
+            <div style="margin-bottom: 32px;">
+                <div class="qr-display">
+                    <svg width="160" height="160" viewBox="0 0 160 160">
+                        <rect width="160" height="160" fill="white"/>
+                        <rect x="8" y="8" width="40" height="40" fill="#0A0A0F"/>
+                        <rect x="12" y="12" width="32" height="32" fill="white"/>
+                        <rect x="16" y="16" width="24" height="24" fill="#0A0A0F"/>
+                        <rect x="112" y="8" width="40" height="40" fill="#0A0A0F"/>
+                        <rect x="116" y="12" width="32" height="32" fill="white"/>
+                        <rect x="120" y="16" width="24" height="24" fill="#0A0A0F"/>
+                        <rect x="8" y="112" width="40" height="40" fill="#0A0A0F"/>
+                        <rect x="12" y="116" width="32" height="32" fill="white"/>
+                        <rect x="16" y="120" width="24" height="24" fill="#0A0A0F"/>
+                        <rect x="56" y="8" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="72" y="8" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="88" y="8" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="56" y="24" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="80" y="24" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="96" y="24" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="56" y="40" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="72" y="40" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="88" y="40" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="8" y="56" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="24" y="56" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="40" y="56" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="8" y="72" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="32" y="72" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="8" y="88" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="24" y="88" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="40" y="88" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="56" y="56" width="48" height="48" fill="#0A0A0F"/>
+                        <rect x="60" y="60" width="40" height="40" fill="white"/>
+                        <rect x="64" y="64" width="32" height="32" fill="#0A0A0F"/>
+                        <rect x="68" y="68" width="24" height="24" fill="white"/>
+                        <rect x="72" y="72" width="16" height="16" fill="#0A0A0F"/>
+                        <rect x="112" y="56" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="128" y="56" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="144" y="56" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="120" y="72" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="136" y="72" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="112" y="88" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="128" y="88" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="144" y="88" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="56" y="112" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="72" y="112" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="88" y="112" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="104" y="112" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="56" y="128" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="80" y="128" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="96" y="128" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="112" y="128" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="128" y="112" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="144" y="112" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="120" y="128" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="136" y="128" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="112" y="144" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="128" y="144" width="8" height="8" fill="#0A0A0F"/>
+                        <rect x="144" y="144" width="8" height="8" fill="#0A0A0F"/>
+                    </svg>
+                </div>
+                <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 8px;">Present this QR code at the restaurant</p>
+            </div>
+            
+            <div class="reservation-summary" id="reservation-summary"></div>
+            
+            <div class="confirmation-actions">
+                <a href="index.html" class="btn btn-primary">Make Another Reservation</a>
+                <button class="btn btn-secondary" onclick="window.print()">Print Receipt</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get reservation data
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code') || 'SKR-UNKNOWN';
+        document.getElementById('confirmation-code').textContent = code;
+
+        const resData = JSON.parse(localStorage.getItem('reservation_data') || '{}');
+        const cartData = JSON.parse(localStorage.getItem('sakura_cart') || '[]');
+
+        const summaryEl = document.getElementById('reservation-summary');
+        
+        let html = '<h3 class="summary-title">Reservation Details</h3>';
+        
+        if (resData.name) {
+            html += `<div class="summary-detail"><span class="summary-detail-label">Name</span><span class="summary-detail-value">${resData.name}</span></div>`;
+            html += `<div class="summary-detail"><span class="summary-detail-label">Phone</span><span class="summary-detail-value">${resData.phone}</span></div>`;
+            html += `<div class="summary-detail"><span class="summary-detail-label">Guests</span><span class="summary-detail-value">${resData.people_count} people</span></div>`;
+            html += `<div class="summary-detail"><span class="summary-detail-label">Date</span><span class="summary-detail-value">${new Date(resData.reservation_date).toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}</span></div>`;
+            html += `<div class="summary-detail"><span class="summary-detail-label">Time</span><span class="summary-detail-value">${resData.reservation_time}</span></div>`;
+            if (resData.special_requests) {
+                html += `<div class="summary-detail"><span class="summary-detail-label">Special Requests</span><span class="summary-detail-value">${resData.special_requests}</span></div>`;
+            }
+        } else {
+            html += '<p style="color: var(--color-text-muted); text-align: center;">Reservation details loaded from database</p>';
+        }
+
+        if (cartData.length > 0) {
+            html += '<div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--color-glass-border);"><h4 style="margin-bottom: 16px;">Pre-Ordered Items</h4>';
+            let foodTotal = 0;
+            cartData.forEach(item => {
+                const subtotal = item.price * item.quantity;
+                foodTotal += subtotal;
+                html += `<div class="summary-detail"><span class="summary-detail-label">${item.name} x${item.quantity}</span><span class="summary-detail-value">$${subtotal.toFixed(2)}</span></div>`;
+            });
+            html += '</div>';
+            
+            const tablePrice = parseFloat(localStorage.getItem('selected_table_price')) || 0;
+            const tax = foodTotal * 0.08;
+            const total = tablePrice + foodTotal + tax;
+            
+            html += `<div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--color-glass-border);">`;
+            html += `<div class="summary-detail"><span class="summary-detail-label">Table Reservation</span><span class="summary-detail-value">$${tablePrice.toFixed(2)}</span></div>`;
+            html += `<div class="summary-detail"><span class="summary-detail-label">Food Subtotal</span><span class="summary-detail-value">$${foodTotal.toFixed(2)}</span></div>`;
+            html += `<div class="summary-detail"><span class="summary-detail-label">Tax (8%)</span><span class="summary-detail-value">$${tax.toFixed(2)}</span></div>`;
+            html += `<div class="summary-detail" style="font-size: 18px; font-weight: 700; color: var(--color-accent); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-glass-border);"><span>Total Paid</span><span>$${total.toFixed(2)}</span></div>`;
+            html += `</div>`;
+        }
+
+        summaryEl.innerHTML = html;
+
+        // Clear cart
+        localStorage.removeItem('sakura_cart');
+        localStorage.removeItem('sakura_cart_total');
+        localStorage.removeItem('reservation_data');
+    </script>
+</body>
+</html>
