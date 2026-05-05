@@ -18,7 +18,7 @@ const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => document.querySelectorAll(selector);
 
 const formatCurrency = (amount) => {
-    return '$' + parseFloat(amount).toFixed(2);
+    return '₱' + parseFloat(amount).toFixed(2);
 };
 
 const formatDate = (dateStr) => {

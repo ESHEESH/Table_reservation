@@ -132,7 +132,7 @@ quickSortTables($tables, 0, count($tables) - 1, 'capacity');
                         </svg>
                         <?php echo $table['capacity']; ?> seats
                     </div>
-                    <div class="table-price">$<?php echo number_format($table['price'], 2); ?></div>
+                    <div class="table-price">₱<?php echo number_format($table['price'], 2); ?></div>
                 </div>
             <?php endforeach; ?>
         </div>

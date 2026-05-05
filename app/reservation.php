@@ -213,20 +213,20 @@ for ($hour = 11; $hour <= 21; $hour++) {
             <div class="glass-card" style="margin-top: 24px;">
                 <div class="panel-label">Amount Due</div>
                 <div style="font-size: 36px; font-weight: 700; color: var(--color-accent); margin: 12px 0;">
-                    $<?php echo $table ? number_format($table['price'], 2) : '0.00'; ?>
+                    ₱<?php echo $table ? number_format($table['price'], 2) : '0.00'; ?>
                 </div>
                 <div id="preorder-total" style="display: none;">
                     <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--color-glass-border);">
                         <span style="color: var(--color-text-secondary); font-size: 14px;">Table Reservation</span>
-                        <span style="font-weight: 600;">$<?php echo $table ? number_format($table['price'], 2) : '0.00'; ?></span>
+                        <span style="font-weight: 600;">₱<?php echo $table ? number_format($table['price'], 2) : '0.00'; ?></span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 8px 0;">
                         <span style="color: var(--color-text-secondary); font-size: 14px;">Pre-order Food</span>
-                        <span id="food-total-display" style="font-weight: 600;">$0.00</span>
+                        <span id="food-total-display" style="font-weight: 600;">₱0.00</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid var(--color-glass-border); font-size: 20px; font-weight: 700; color: var(--color-accent);">
                         <span>Total</span>
-                        <span id="grand-total">$<?php echo $table ? number_format($table['price'], 2) : '0.00'; ?></span>
+                        <span id="grand-total">₱<?php echo $table ? number_format($table['price'], 2) : '0.00'; ?></span>
                     </div>
                 </div>
             </div>

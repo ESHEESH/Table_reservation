@@ -26,6 +26,38 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
         $pdo->prepare("UPDATE tables SET status=? WHERE id=?")->execute([$ts, $tid]);
         header('Location: admin.php?tab=tables&flash=1'); exit;
     }
+    if ($_POST['action'] === 'update_table_details') {
+        $tid = (int)$_POST['table_id'];
+        $capacity = max(1, (int)$_POST['capacity']);
+        $price = max(0, (float)$_POST['price']);
+        $features = trim($_POST['features']);
+        $pdo->prepare("UPDATE tables SET capacity=?, price=?, features=? WHERE id=?")->execute([$capacity, $price, $features, $tid]);
+        header('Location: admin.php?tab=tables&flash=1'); exit;
+    }
+    if ($_POST['action'] === 'add_menu_item') {
+        $name = trim($_POST['name']);
+        $desc = trim($_POST['description']);
+        $price = max(0, (float)$_POST['price']);
+        $cat = in_array($_POST['category'], ['sushi','sashimi','rolls','appetizers','drinks']) ? $_POST['category'] : 'sushi';
+        $img = trim($_POST['image']);
+        $pdo->prepare("INSERT INTO menu_items (name, description, price, category, image) VALUES (?, ?, ?, ?, ?)")->execute([$name, $desc, $price, $cat, $img]);
+        header('Location: admin.php?tab=menu&flash=1'); exit;
+    }
+    if ($_POST['action'] === 'update_menu_item') {
+        $id = (int)$_POST['menu_id'];
+        $name = trim($_POST['name']);
+        $desc = trim($_POST['description']);
+        $price = max(0, (float)$_POST['price']);
+        $cat = in_array($_POST['category'], ['sushi','sashimi','rolls','appetizers','drinks']) ? $_POST['category'] : 'sushi';
+        $img = trim($_POST['image']);
+        $pdo->prepare("UPDATE menu_items SET name=?, description=?, price=?, category=?, image=? WHERE id=?")->execute([$name, $desc, $price, $cat, $img, $id]);
+        header('Location: admin.php?tab=menu&flash=1'); exit;
+    }
+    if ($_POST['action'] === 'delete_menu_item') {
+        $id = (int)$_POST['menu_id'];
+        $pdo->prepare("DELETE FROM menu_items WHERE id=?")->execute([$id]);
+        header('Location: admin.php?tab=menu&flash=1'); exit;
+    }
 }
 if ($loggedIn) {
     $pdo        = getDBConnection();
@@ -38,6 +70,7 @@ if ($loggedIn) {
     $preorders  = (int)$pdo->query("SELECT COUNT(DISTINCT reservation_id) FROM pre_orders")->fetchColumn();
     $available  = (int)$pdo->query("SELECT COUNT(*) FROM tables WHERE status='available'")->fetchColumn();
     $tablesAll  = $pdo->query("SELECT * FROM tables ORDER BY table_number")->fetchAll();
+    $menuItems  = $pdo->query("SELECT * FROM menu_items ORDER BY category, name")->fetchAll();
     $search     = trim($_GET['search'] ?? '');
     $allRes     = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id ORDER BY FIELD(r.status,'pending','confirmed','cancelled'), r.created_at DESC")->fetchAll();
     if ($search !== '') {
@@ -55,7 +88,7 @@ if ($loggedIn) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Sakura Sushi</title>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -66,7 +99,7 @@ if ($loggedIn) {
   --sidebar-w:240px;--topbar-h:60px;
 }
 html,body{height:100%;overflow:hidden;}
-body{background:var(--bg);color:var(--cream);font-family:'Zen Kaku Gothic New',sans-serif;display:flex;flex-direction:column;}
+body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif;display:flex;flex-direction:column;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:rgba(201,150,79,.2);border-radius:2px;}
@@ -263,6 +296,10 @@ body{background:var(--bg);color:var(--cream);font-family:'Zen Kaku Gothic New',s
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="3" rx="1"/><path d="M6 9v9M18 9v9M4 18h16"/></svg>
       Tables
     </a>
+    <a href="admin.php?tab=menu" class="nav-item <?= $activeTab==='menu'?'active':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+      Menu Items
+    </a>
     <div class="nav-section">Quick Stats</div>
     <div style="padding:.3rem .8rem 0;font-size:.78rem;display:flex;flex-direction:column;gap:.45rem;">
       <div style="display:flex;justify-content:space-between;color:var(--muted);"><span>Today</span><strong style="color:var(--cream);"><?= $todayCount ?></strong></div>
@@ -445,7 +482,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Zen Kaku Gothic New',s
 <?php endif; ?>
 
 <?php if ($activeTab === 'tables'): ?>
-<div class="section-head"><span class="section-title">Tables Overview</span></div>
+<div class="section-head"><span class="section-title">Tables Management</span></div>
 <div class="tables-grid">
   <?php foreach ($tablesAll as $t): ?>
   <div class="tov-card">
@@ -453,10 +490,29 @@ body{background:var(--bg);color:var(--cream);font-family:'Zen Kaku Gothic New',s
       <div class="tov-num"><?= htmlspecialchars($t['table_number']) ?></div>
       <span class="pill pill-<?= $t['status'] ?>"><?= $t['status'] ?></span>
     </div>
-    <div class="tov-cap"><?= $t['capacity'] ?> seats max</div>
-    <div class="tov-feat"><?= htmlspecialchars($t['features'] ?? '') ?></div>
-    <div class="tov-price">&#8369;<?= number_format($t['price'], 2) ?> reservation fee</div>
-    <form method="POST">
+    <form method="POST" style="width:100%;">
+      <input type="hidden" name="action" value="update_table_details">
+      <input type="hidden" name="table_id" value="<?= $t['id'] ?>">
+      
+      <div style="margin:.5rem 0;">
+        <label style="font-size:.68rem;color:var(--muted);display:block;margin-bottom:.2rem;">Capacity</label>
+        <input type="number" name="capacity" value="<?= $t['capacity'] ?>" min="1" max="20" class="act-select" style="width:100%;padding:.4rem;">
+      </div>
+      
+      <div style="margin:.5rem 0;">
+        <label style="font-size:.68rem;color:var(--muted);display:block;margin-bottom:.2rem;">Price (₱)</label>
+        <input type="number" name="price" value="<?= $t['price'] ?>" min="0" step="0.01" class="act-select" style="width:100%;padding:.4rem;">
+      </div>
+      
+      <div style="margin:.5rem 0;">
+        <label style="font-size:.68rem;color:var(--muted);display:block;margin-bottom:.2rem;">Features</label>
+        <input type="text" name="features" value="<?= htmlspecialchars($t['features'] ?? '') ?>" class="act-select" style="width:100%;padding:.4rem;" placeholder="e.g., Window view">
+      </div>
+      
+      <button type="submit" class="act-btn save" style="width:100%;justify-content:center;margin-top:.5rem;">Save Changes</button>
+    </form>
+    
+    <form method="POST" style="margin-top:.5rem;">
       <input type="hidden" name="action" value="update_table_status">
       <input type="hidden" name="table_id" value="<?= $t['id'] ?>">
       <select class="tov-select" name="status" onchange="this.form.submit()">
@@ -467,6 +523,120 @@ body{background:var(--bg);color:var(--cream);font-family:'Zen Kaku Gothic New',s
     </form>
   </div>
   <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<?php if ($activeTab === 'menu'): ?>
+<div class="section-head">
+  <span class="section-title">Menu Items Management</span>
+  <button class="act-btn" onclick="document.getElementById('addMenuForm').style.display='block'">+ Add New Item</button>
+</div>
+
+<div id="addMenuForm" class="glass-block" style="display:none;margin-bottom:1.5rem;">
+  <h3 style="font-size:1rem;margin-bottom:1rem;color:var(--gold);">Add New Menu Item</h3>
+  <form method="POST" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+    <input type="hidden" name="action" value="add_menu_item">
+    <div>
+      <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Name *</label>
+      <input type="text" name="name" required class="act-select" style="width:100%;padding:.5rem;">
+    </div>
+    <div>
+      <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Price (₱) *</label>
+      <input type="number" name="price" required min="0" step="0.01" class="act-select" style="width:100%;padding:.5rem;">
+    </div>
+    <div>
+      <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Category *</label>
+      <select name="category" required class="act-select" style="width:100%;padding:.5rem;">
+        <option value="sushi">Sushi</option>
+        <option value="sashimi">Sashimi</option>
+        <option value="rolls">Rolls</option>
+        <option value="appetizers">Appetizers</option>
+        <option value="drinks">Drinks</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Image Filename</label>
+      <input type="text" name="image" class="act-select" style="width:100%;padding:.5rem;" placeholder="e.g., salmon-nigiri.jpg">
+    </div>
+    <div style="grid-column:1/-1;">
+      <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Description</label>
+      <textarea name="description" class="act-select" style="width:100%;padding:.5rem;min-height:60px;"></textarea>
+    </div>
+    <div style="grid-column:1/-1;display:flex;gap:.5rem;">
+      <button type="submit" class="act-btn save">Add Item</button>
+      <button type="button" class="act-btn" onclick="document.getElementById('addMenuForm').style.display='none'">Cancel</button>
+    </div>
+  </form>
+</div>
+
+<div class="data-wrap">
+  <div style="overflow-x:auto;">
+  <table class="data-table">
+    <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Description</th><th>Image</th><th>Actions</th></tr></thead>
+    <tbody>
+    <?php 
+    $categories = ['sushi'=>'Sushi','sashimi'=>'Sashimi','rolls'=>'Rolls','appetizers'=>'Appetizers','drinks'=>'Drinks'];
+    foreach ($menuItems as $m): 
+    ?>
+    <tr>
+      <td><strong><?= htmlspecialchars($m['name']) ?></strong></td>
+      <td><span class="pill pill-confirmed"><?= $categories[$m['category']] ?? $m['category'] ?></span></td>
+      <td style="color:var(--gold);font-weight:600;">&#8369;<?= number_format($m['price'], 2) ?></td>
+      <td style="font-size:.75rem;max-width:250px;"><?= htmlspecialchars(substr($m['description'] ?? '', 0, 60)) ?><?= strlen($m['description'] ?? '') > 60 ? '...' : '' ?></td>
+      <td style="font-size:.72rem;color:var(--muted);"><?= htmlspecialchars($m['image'] ?? '—') ?></td>
+      <td>
+        <button class="act-btn" onclick="editMenu(<?= $m['id'] ?>,'<?= htmlspecialchars(addslashes($m['name'])) ?>','<?= htmlspecialchars(addslashes($m['description'] ?? '')) ?>',<?= $m['price'] ?>,'<?= $m['category'] ?>','<?= htmlspecialchars(addslashes($m['image'] ?? '')) ?>')">Edit</button>
+        <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?')">
+          <input type="hidden" name="action" value="delete_menu_item">
+          <input type="hidden" name="menu_id" value="<?= $m['id'] ?>">
+          <button type="submit" class="act-btn" style="border-color:var(--red);color:var(--red);">Delete</button>
+        </form>
+      </td>
+    </tr>
+    <?php endforeach; if (empty($menuItems)): ?><tr><td colspan="6" class="empty-state">No menu items yet.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div id="editMenuModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:9999;align-items:center;justify-content:center;">
+  <div class="glass-block" style="max-width:600px;width:90%;max-height:90vh;overflow-y:auto;">
+    <h3 style="font-size:1rem;margin-bottom:1rem;color:var(--gold);">Edit Menu Item</h3>
+    <form method="POST" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+      <input type="hidden" name="action" value="update_menu_item">
+      <input type="hidden" name="menu_id" id="edit_menu_id">
+      <div>
+        <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Name *</label>
+        <input type="text" name="name" id="edit_name" required class="act-select" style="width:100%;padding:.5rem;">
+      </div>
+      <div>
+        <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Price (₱) *</label>
+        <input type="number" name="price" id="edit_price" required min="0" step="0.01" class="act-select" style="width:100%;padding:.5rem;">
+      </div>
+      <div>
+        <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Category *</label>
+        <select name="category" id="edit_category" required class="act-select" style="width:100%;padding:.5rem;">
+          <option value="sushi">Sushi</option>
+          <option value="sashimi">Sashimi</option>
+          <option value="rolls">Rolls</option>
+          <option value="appetizers">Appetizers</option>
+          <option value="drinks">Drinks</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Image Filename</label>
+        <input type="text" name="image" id="edit_image" class="act-select" style="width:100%;padding:.5rem;">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Description</label>
+        <textarea name="description" id="edit_description" class="act-select" style="width:100%;padding:.5rem;min-height:60px;"></textarea>
+      </div>
+      <div style="grid-column:1/-1;display:flex;gap:.5rem;">
+        <button type="submit" class="act-btn save">Update Item</button>
+        <button type="button" class="act-btn" onclick="document.getElementById('editMenuModal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
 </div>
 <?php endif; ?>
 
@@ -490,6 +660,15 @@ function filterTable() {
     const matchSearch = !q || row.dataset.search.includes(q);
     row.style.display = matchStatus && matchSearch ? '' : 'none';
   });
+}
+function editMenu(id, name, desc, price, cat, img) {
+  document.getElementById('edit_menu_id').value = id;
+  document.getElementById('edit_name').value = name;
+  document.getElementById('edit_description').value = desc;
+  document.getElementById('edit_price').value = price;
+  document.getElementById('edit_category').value = cat;
+  document.getElementById('edit_image').value = img;
+  document.getElementById('editMenuModal').style.display = 'flex';
 }
 </script>
 </body>

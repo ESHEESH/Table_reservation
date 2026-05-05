@@ -166,15 +166,15 @@ $imageMap = [
         <div class="cart-summary">
             <div class="summary-row">
                 <span>Subtotal</span>
-                <span class="cart-subtotal">$0.00</span>
+                <span class="cart-subtotal">₱0.00</span>
             </div>
             <div class="summary-row">
                 <span>Tax (8%)</span>
-                <span class="cart-tax">$0.00</span>
+                <span class="cart-tax">₱0.00</span>
             </div>
             <div class="summary-row total">
                 <span>Total</span>
-                <span class="cart-total">$0.00</span>
+                <span class="cart-total">₱0.00</span>
             </div>
         </div>
         
