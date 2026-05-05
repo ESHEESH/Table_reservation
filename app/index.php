@@ -22,7 +22,7 @@ require_once 'config.php';
         <div class="nav-logo">Sakura Sushi</div>
         <ul class="nav-links">
             <li><a href="index.php">Home</a></li>
-            <li><a href="menu.php">Menu</a></li>
+            <li><a href="tables.php">Reserve Table</a></li>
         </ul>
     </nav>
 

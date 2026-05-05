@@ -3,18 +3,28 @@
  * Sakura Sushi - Pre-Order Menu
  * Sushi menu with category filtering and cart
  * Uses Linked List for cart management
+ * REQUIRES: table_id parameter (must select table first)
  */
 require_once 'config.php';
 
 $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
-// Get table details if ID provided
-$table = null;
-if ($tableId > 0) {
-    $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM tables WHERE id = ?");
-    $stmt->execute([$tableId]);
-    $table = $stmt->fetch();
+// Redirect to tables page if no table selected
+if ($tableId === 0) {
+    header('Location: tables.php');
+    exit;
+}
+
+// Get table details
+$pdo = getDBConnection();
+$stmt = $pdo->prepare("SELECT * FROM tables WHERE id = ?");
+$stmt->execute([$tableId]);
+$table = $stmt->fetch();
+
+// If table not found, redirect to tables page
+if (!$table) {
+    header('Location: tables.php');
+    exit;
 }
 
 // Fetch menu items from database
@@ -82,18 +92,33 @@ $imageMap = [
 
     <!-- Page Header -->
     <header class="page-header">
+        <div style="background: rgba(201,150,79,.1); border: 1px solid rgba(201,150,79,.3); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; max-width: 600px; margin-left: auto; margin-right: auto;">
+            <div style="display: flex; align-items: center; gap: 10px; color: var(--color-accent); font-size: 14px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span>Pre-ordering is optional. You can skip this and proceed directly to reservation.</span>
+            </div>
+        </div>
+        
         <h1 class="page-title">Pre-Order Your Meal</h1>
         <p class="page-subtitle">Select your favorite dishes - they'll be ready when you arrive</p>
         
-        <?php if ($table): ?>
-        <div class="info-card" style="max-width: 400px;">
+        <div class="info-card" style="max-width: 500px; margin: 20px auto;">
             <div class="info-card-label">Selected Table</div>
             <div class="info-card-value">
                 Table <?php echo htmlspecialchars($table['table_number']); ?> 
-                &middot; <?php echo $table['capacity']; ?> seats
+                &middot; <?php echo $table['capacity']; ?> seats 
+                &middot; ₱<?php echo number_format($table['price'], 2); ?>
+            </div>
+            <div style="margin-top: 12px;">
+                <a href="reservation.php?table_id=<?php echo $tableId; ?>" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
+                    Skip to Reservation →
+                </a>
             </div>
         </div>
-        <?php endif; ?>
     </header>
 
     <!-- Menu Container -->

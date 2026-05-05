@@ -88,6 +88,7 @@ if ($loggedIn) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Sakura Sushi</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -96,7 +97,7 @@ if ($loggedIn) {
   --cream:#fdf6ec;--muted:rgba(253,246,236,.45);--muted2:rgba(253,246,236,.2);
   --gold:#c9964f;--gold-dim:rgba(201,150,79,.15);
   --red:#c0392b;--green:#3d9970;--amber:#e67e22;--blue:#2980b9;
-  --sidebar-w:240px;--topbar-h:60px;
+  --sidebar-w:280px;--topbar-h:60px;
 }
 html,body{height:100%;overflow:hidden;}
 body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif;display:flex;flex-direction:column;}
@@ -236,10 +237,31 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 .receipt-link{color:var(--gold);font-size:.75rem;text-decoration:none;border:1px solid rgba(201,150,79,.2);padding:.15rem .5rem;border-radius:4px;}
 .receipt-link:hover{background:var(--gold-dim);}
 
+/* MOBILE HAMBURGER */
+.mobile-toggle{display:none;background:none;border:1px solid var(--border);color:var(--cream);padding:.5rem;border-radius:8px;cursor:pointer;margin-right:.5rem;}
+.mobile-toggle svg{width:20px;height:20px;}
+.sidebar-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:998;opacity:0;transition:opacity .3s;}
+.sidebar-overlay.active{display:block;opacity:1;}
+
 @media(max-width:768px){
-  .sidebar{display:none;}
+  .sidebar{
+    position:fixed;
+    top:0;
+    left:-280px;
+    height:100vh;
+    z-index:999;
+    transition:left .3s ease;
+    box-shadow:2px 0 10px rgba(0,0,0,.5);
+  }
+  .sidebar.active{left:0;}
+  .mobile-toggle{display:flex;}
   .stats-grid{grid-template-columns:repeat(2,1fr);}
   .two-col{grid-template-columns:1fr;}
+  .topbar-date{display:none;}
+  .topbar-title{font-size:.95rem;}
+  .tables-grid{grid-template-columns:1fr;}
+  .data-table{font-size:.75rem;}
+  .data-table th,.data-table td{padding:.5rem .6rem;}
 }
 </style>
 </head>
@@ -261,7 +283,15 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 </div>
 
 <?php else: ?>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 <div class="topbar">
+  <button class="mobile-toggle" id="mobileToggle">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
   <div class="topbar-title">桜 Sakura Admin</div>
   <?php if ($flash): ?><span class="flash">Saved successfully</span><?php endif; ?>
   <div class="topbar-actions">
@@ -277,7 +307,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 </div>
 
 <div class="app-body">
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
       <div class="brand-name">桜 Sakura</div>
       <div class="brand-tag">Reservation Admin</div>
@@ -670,6 +700,34 @@ function editMenu(id, name, desc, price, cat, img) {
   document.getElementById('edit_image').value = img;
   document.getElementById('editMenuModal').style.display = 'flex';
 }
+
+// Mobile sidebar toggle
+const mobileToggle = document.getElementById('mobileToggle');
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+if (mobileToggle && sidebar && sidebarOverlay) {
+  mobileToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+    sidebarOverlay.classList.toggle('active');
+  });
+  
+  sidebarOverlay.addEventListener('click', () => {
+    sidebar.classList.remove('active');
+    sidebarOverlay.classList.remove('active');
+  });
+  
+  // Close sidebar when clicking nav items on mobile
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+      }
+    });
+  });
+}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

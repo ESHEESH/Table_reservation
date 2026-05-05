@@ -2,18 +2,28 @@
 /**
  * Sakura Sushi - Reservation Form
  * Customer details, payment QR code, receipt upload
+ * REQUIRES: table_id parameter (must select table first)
  */
 require_once 'config.php';
 
 $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
 
-// Get table details if ID provided
-$table = null;
-if ($tableId > 0) {
-    $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM tables WHERE id = ?");
-    $stmt->execute([$tableId]);
-    $table = $stmt->fetch();
+// Redirect to tables page if no table selected
+if ($tableId === 0) {
+    header('Location: tables.php');
+    exit;
+}
+
+// Get table details
+$pdo = getDBConnection();
+$stmt = $pdo->prepare("SELECT * FROM tables WHERE id = ?");
+$stmt->execute([$tableId]);
+$table = $stmt->fetch();
+
+// If table not found, redirect to tables page
+if (!$table) {
+    header('Location: tables.php');
+    exit;
 }
 
 // Generate time slots
