@@ -148,7 +148,7 @@ if (!$table) {
                 <!-- Add Pre-Order Button -->
                 <div style="margin-top: 16px; padding: 12px; background: rgba(201,150,79,.05); border: 1px solid rgba(201,150,79,.2); border-radius: 12px; text-align: center;">
                     <p style="font-size: 14px; color: rgba(253,246,236,.7); margin-bottom: 8px;">Want to pre-order food?</p>
-                    <a href="menu.php?table_id=<?php echo $tableId; ?>&from_reservation=1" class="btn btn-secondary" id="preorder-link" style="display: inline-block; text-decoration: none;">
+                    <a href="menu.php?table_id=<?php echo $tableId; ?><?php echo $selectedDate ? '&date='.urlencode($selectedDate) : ''; ?><?php echo $selectedTime ? '&time='.urlencode($selectedTime) : ''; ?>&from_reservation=1" class="btn btn-secondary" id="preorder-link" style="display: inline-block; text-decoration: none;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
                             <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>
                         </svg>
@@ -279,11 +279,13 @@ if (!$table) {
     <script>
         // Save form data to localStorage before leaving page
         async function saveFormData() {
+            console.log('=== Saving Form Data ===');
             const fileInput = document.getElementById('payment_receipt');
             let receiptData = null;
             
             // Save file if uploaded
             if (fileInput && fileInput.files && fileInput.files[0]) {
+                console.log('Saving receipt file:', fileInput.files[0].name);
                 const file = fileInput.files[0];
                 const reader = new FileReader();
                 
@@ -306,7 +308,9 @@ if (!$table) {
                 special_requests: document.getElementById('special_requests')?.value || '',
                 receipt: receiptData
             };
+            console.log('Form data to save:', formData);
             localStorage.setItem('sakura_reservation_form', JSON.stringify(formData));
+            console.log('Form data saved to localStorage');
         }
         
         // Restore form data from localStorage
@@ -357,9 +361,17 @@ if (!$table) {
         
         // Check for cart data from pre-order
         document.addEventListener('DOMContentLoaded', () => {
+            // Debug: Check what's in localStorage
+            console.log('=== Reservation Page Loaded ===');
+            console.log('from_menu parameter:', fromMenu);
+            console.log('Saved form data:', localStorage.getItem('sakura_reservation_form'));
+            
             // Restore form data if coming back from menu
             if (fromMenu) {
+                console.log('Restoring form data...');
                 restoreFormData();
+            } else {
+                console.log('Not from menu, skipping restore');
             }
             
             // Save form data whenever inputs change

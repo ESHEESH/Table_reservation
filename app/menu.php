@@ -8,6 +8,8 @@
 require_once 'config.php';
 
 $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
+$selectedDate = isset($_GET['date']) ? $_GET['date'] : '';
+$selectedTime = isset($_GET['time']) ? $_GET['time'] : '';
 
 // Redirect to tables page if no table selected
 if ($tableId === 0) {
@@ -114,7 +116,7 @@ $imageMap = [
                 &middot; ₱<?php echo number_format($table['price'], 2); ?>
             </div>
             <div style="margin-top: 12px;">
-                <a href="reservation.php?table_id=<?php echo $tableId; ?>&from_menu=1" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
+                <a href="reservation.php?table_id=<?php echo $tableId; ?><?php echo $selectedDate ? '&date='.urlencode($selectedDate) : ''; ?><?php echo $selectedTime ? '&time='.urlencode($selectedTime) : ''; ?>&from_menu=1" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
                     Skip to Reservation →
                 </a>
             </div>
@@ -204,7 +206,7 @@ $imageMap = [
         </div>
         
         <div class="panel-buttons">
-            <a href="reservation.php<?php echo $tableId ? '?table_id='.$tableId.'&from_menu=1' : '?from_menu=1'; ?>" class="btn btn-primary btn-full">
+            <a href="reservation.php?table_id=<?php echo $tableId; ?><?php echo $selectedDate ? '&date='.urlencode($selectedDate) : ''; ?><?php echo $selectedTime ? '&time='.urlencode($selectedTime) : ''; ?>&from_menu=1" class="btn btn-primary btn-full">
                 Proceed to Reservation
             </a>
             <button class="btn btn-glass btn-full btn-clear-cart">Clear Cart</button>
