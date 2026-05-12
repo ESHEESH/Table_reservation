@@ -172,7 +172,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 .page-body{padding:1.5rem;flex:1;}
 
 /* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:1rem;margin-bottom:1.5rem;}
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1rem;margin-bottom:1.5rem;}
 .stat-card{background:rgba(16,11,24,.8);border:1px solid var(--border);border-radius:14px;padding:1.1rem 1.2rem;position:relative;overflow:hidden;transition:border-color .2s;}
 .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--stripe,var(--gold));opacity:.6;}
 .stat-card:hover{border-color:var(--border-hv);}
@@ -223,10 +223,11 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 .act-row{display:flex;align-items:center;gap:.3rem;}
 .act-select{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:6px;color:var(--cream);font-family:inherit;font-size:.75rem;padding:.3rem .5rem;cursor:pointer;outline:none;}
 .act-select:focus{border-color:var(--gold);}
-.act-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:.28rem .6rem;border-radius:6px;cursor:pointer;font-size:.72rem;font-family:inherit;display:flex;align-items:center;gap:.3rem;transition:all .15s;white-space:nowrap;}
+.act-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:.28rem .6rem;border-radius:6px;cursor:pointer;font-size:.72rem;font-family:inherit;display:inline-flex;align-items:center;justify-content:center;gap:.3rem;transition:all .15s;white-space:nowrap;}
 .act-btn:hover{border-color:var(--border-hv);color:var(--cream);}
 .act-btn.save{border-color:rgba(201,150,79,.3);color:var(--gold);}
 .act-btn.save:hover{background:var(--gold-dim);}
+.act-btn svg{flex-shrink:0;}
 .preorder-tag{font-size:.68rem;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,150,79,.2);padding:.12rem .45rem;border-radius:4px;}
 
 /* TABLES GRID */
@@ -275,13 +276,17 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
   }
   .sidebar.active{left:0;}
   .mobile-toggle{display:flex;}
-  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .stats-grid{grid-template-columns:repeat(3,1fr);}
   .two-col{grid-template-columns:1fr;}
   .topbar-date{display:none;}
   .topbar-title{font-size:.95rem;}
   .tables-grid{grid-template-columns:1fr;}
   .data-table{font-size:.75rem;}
   .data-table th,.data-table td{padding:.5rem .6rem;}
+}
+
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
 }
 </style>
 </head>
@@ -509,7 +514,14 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       <td style="text-align:center;"><?= $r['people_count'] ?></td>
       <td>&#8369;<?= number_format($r['table_price'] ?? 0, 2) ?></td>
       <td><?= $r['po_count'] > 0 ? '<span class="preorder-tag">'.$r['po_count'].' items</span>' : '<span style="color:var(--muted2);">—</span>' ?></td>
-      <td><?php if ($r['payment_receipt']): ?><a href="../<?= htmlspecialchars($r['payment_receipt']) ?>" target="_blank" class="receipt-link">View</a><?php else: ?><span style="color:var(--muted2);">—</span><?php endif; ?></td>
+      <td><?php if ($r['payment_receipt']): ?>
+        <button class="act-btn" onclick="viewReceipt('../<?= htmlspecialchars($r['payment_receipt']) ?>')" title="View Receipt">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      <?php else: ?><span style="color:var(--muted2);">—</span><?php endif; ?></td>
       <td><span class="pill pill-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
       <td>
         <form method="POST" class="act-row">
@@ -666,11 +678,23 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       <td><?= !empty($m['available']) ? '<span class="pill pill-confirmed">Yes</span>' : '<span class="pill pill-cancelled">No</span>' ?></td>
       <td style="font-size:.75rem;max-width:200px;"><?= htmlspecialchars(substr($m['description'] ?? '', 0, 50)) ?><?= strlen($m['description'] ?? '') > 50 ? '...' : '' ?></td>
       <td>
-        <button class="act-btn" onclick="editMenu(<?= $m['id'] ?>,'<?= htmlspecialchars(addslashes($m['name'])) ?>','<?= htmlspecialchars(addslashes($m['description'] ?? '')) ?>',<?= $m['price'] ?>,'<?= $m['category'] ?>','<?= htmlspecialchars(addslashes($m['image'] ?? '')) ?>',<?= $m['stock'] ?? 0 ?>,<?= $m['available'] ?? 1 ?>)">Edit</button>
+        <button class="act-btn" onclick="editMenu(<?= $m['id'] ?>,'<?= htmlspecialchars(addslashes($m['name'])) ?>','<?= htmlspecialchars(addslashes($m['description'] ?? '')) ?>',<?= $m['price'] ?>,'<?= $m['category'] ?>','<?= htmlspecialchars(addslashes($m['image'] ?? '')) ?>',<?= $m['stock'] ?? 0 ?>,<?= $m['available'] ?? 1 ?>)" title="Edit">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </button>
         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?')">
           <input type="hidden" name="action" value="delete_menu_item">
           <input type="hidden" name="menu_id" value="<?= $m['id'] ?>">
-          <button type="submit" class="act-btn" style="border-color:var(--red);color:var(--red);">Delete</button>
+          <button type="submit" class="act-btn" style="border-color:var(--red);color:var(--red);" title="Delete">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              <line x1="10" y1="11" x2="10" y2="17"/>
+              <line x1="14" y1="11" x2="14" y2="17"/>
+            </svg>
+          </button>
         </form>
       </td>
     </tr>
@@ -727,6 +751,16 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
     </form>
   </div>
 </div>
+
+<!-- Receipt Viewer Modal -->
+<div id="receiptModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.9);z-index:9999;align-items:center;justify-content:center;" onclick="closeReceiptModal()">
+  <div style="max-width:90%;max-height:90vh;position:relative;" onclick="event.stopPropagation()">
+    <button onclick="closeReceiptModal()" style="position:absolute;top:-40px;right:0;background:rgba(255,255,255,.1);border:1px solid var(--border);color:var(--cream);padding:.5rem 1rem;border-radius:8px;cursor:pointer;font-size:.9rem;">
+      Close
+    </button>
+    <img id="receiptImage" src="" alt="Payment Receipt" style="max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.5);">
+  </div>
+</div>
 <?php endif; ?>
 
     </div><!-- /page-body -->
@@ -762,6 +796,18 @@ function editMenu(id, name, desc, price, cat, img, stock, available) {
   document.getElementById('editMenuModal').style.display = 'flex';
 }
 
+// Receipt viewer
+function viewReceipt(url) {
+  const modal = document.getElementById('receiptModal');
+  const img = document.getElementById('receiptImage');
+  img.src = url;
+  modal.style.display = 'flex';
+}
+
+function closeReceiptModal() {
+  document.getElementById('receiptModal').style.display = 'none';
+}
+
 // Mobile sidebar toggle
 const mobileToggle = document.getElementById('mobileToggle');
 const sidebar = document.getElementById('sidebar');
@@ -788,6 +834,7 @@ if (mobileToggle && sidebar && sidebarOverlay) {
     });
   });
 }
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

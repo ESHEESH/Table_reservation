@@ -634,8 +634,8 @@ const initReservationSubmit = () => {
             if (result.success) {
                 // Clear cart on success
                 cart.clear();
-                // Redirect to confirmation
-                window.location.href = `confirmation.php?code=${result.confirmation_code}`;
+                // Redirect to pre-order prompt
+                window.location.href = result.redirect_url || `preorder-prompt.php?code=${result.confirmation_code}&table_id=${result.table_id}`;
             } else {
                 showAlert(result.message || 'Failed to create reservation', 'error');
                 submitBtn.disabled = false;
