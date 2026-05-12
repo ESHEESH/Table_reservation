@@ -126,20 +126,20 @@
             <div class="glass-card" style="margin-top: 24px;">
                 <div class="panel-label">Amount Due</div>
                 <div style="font-size: 36px; font-weight: 700; color: var(--color-accent); margin: 12px 0;" id="amount-due">
-                    $15.00
+                    ₱15.00
                 </div>
                 <div id="preorder-total" style="display: none;">
                     <div style="display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--color-glass-border);">
                         <span style="color: var(--color-text-secondary); font-size: 14px;">Table Reservation</span>
-                        <span style="font-weight: 600;" id="table-fee">$15.00</span>
+                        <span style="font-weight: 600;" id="table-fee">₱15.00</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 8px 0;">
                         <span style="color: var(--color-text-secondary); font-size: 14px;">Pre-order Food</span>
-                        <span id="food-total-display" style="font-weight: 600;">$0.00</span>
+                        <span id="food-total-display" style="font-weight: 600;">₱0.00</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; padding: 12px 0; border-top: 2px solid var(--color-glass-border); font-size: 20px; font-weight: 700; color: var(--color-accent);">
                         <span>Total</span>
-                        <span id="grand-total">$15.00</span>
+                        <span id="grand-total">₱15.00</span>
                     </div>
                 </div>
             </div>
@@ -163,7 +163,7 @@
     </div>
 
     <script>
-        // Set min date to today
+        // Set min date to today finaly fixed it 
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('reservation_date').min = today;
         document.getElementById('reservation_date').max = new Date(Date.now() + 30*86400000).toISOString().split('T')[0];
@@ -174,7 +174,7 @@
         
         if (tableId) {
             document.getElementById('table_id').value = tableId;
-            document.getElementById('table-display').textContent = `Table (ID: ${tableId}) - $${tablePrice.toFixed(2)}`;
+            document.getElementById('table-display').textContent = `Table (ID: ${tableId}) - ₱${tablePrice.toFixed(2)}`;
         }
 
         // Generate time slots
@@ -211,7 +211,7 @@
                 items.forEach(item => {
                     html += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-glass-border);">
                         <span>${item.name} x${item.quantity}</span>
-                        <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                        <span>₱${(item.price * item.quantity).toFixed(2)}</span>
                     </div>`;
                 });
                 listContainer.innerHTML = html;
@@ -219,10 +219,10 @@
                 const foodTotal = parseFloat(cartTotal) || 0;
                 const grandTotal = tablePrice + foodTotal;
                 
-                document.getElementById('table-fee').textContent = '$' + tablePrice.toFixed(2);
-                document.getElementById('food-total-display').textContent = '$' + foodTotal.toFixed(2);
-                document.getElementById('grand-total').textContent = '$' + grandTotal.toFixed(2);
-                document.getElementById('amount-due').textContent = '$' + grandTotal.toFixed(2);
+                document.getElementById('table-fee').textContent = '₱' + tablePrice.toFixed(2);
+                document.getElementById('food-total-display').textContent = '₱' + foodTotal.toFixed(2);
+                document.getElementById('grand-total').textContent = '₱' + grandTotal.toFixed(2);
+                document.getElementById('amount-due').textContent = '₱' + grandTotal.toFixed(2);
             }
         }
 

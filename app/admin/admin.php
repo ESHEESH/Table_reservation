@@ -31,7 +31,10 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
         $capacity = max(1, (int)$_POST['capacity']);
         $price = max(0, (float)$_POST['price']);
         $features = trim($_POST['features']);
-        $pdo->prepare("UPDATE tables SET capacity=?, price=?, features=? WHERE id=?")->execute([$capacity, $price, $features, $tid]);
+        $location = trim($_POST['location'] ?? 'Main Hall');
+        $table_type = in_array($_POST['table_type'] ?? '', ['standard','booth','counter','vip']) ? $_POST['table_type'] : 'standard';
+        $is_smoking = !empty($_POST['is_smoking']) ? 1 : 0;
+        $pdo->prepare("UPDATE tables SET capacity=?, price=?, features=?, location=?, table_type=?, is_smoking=? WHERE id=?")->execute([$capacity, $price, $features, $location, $table_type, $is_smoking, $tid]);
         header('Location: admin.php?tab=tables&flash=1'); exit;
     }
     if ($_POST['action'] === 'add_menu_item') {
@@ -40,7 +43,9 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
         $price = max(0, (float)$_POST['price']);
         $cat = in_array($_POST['category'], ['sushi','sashimi','rolls','appetizers','drinks']) ? $_POST['category'] : 'sushi';
         $img = trim($_POST['image']);
-        $pdo->prepare("INSERT INTO menu_items (name, description, price, category, image) VALUES (?, ?, ?, ?, ?)")->execute([$name, $desc, $price, $cat, $img]);
+        $stock = max(0, (int)($_POST['stock'] ?? 100));
+        $available = !empty($_POST['available']) ? 1 : 0;
+        $pdo->prepare("INSERT INTO menu_items (name, description, price, category, image, stock, available) VALUES (?, ?, ?, ?, ?, ?, ?)")->execute([$name, $desc, $price, $cat, $img, $stock, $available]);
         header('Location: admin.php?tab=menu&flash=1'); exit;
     }
     if ($_POST['action'] === 'update_menu_item') {
@@ -50,7 +55,9 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
         $price = max(0, (float)$_POST['price']);
         $cat = in_array($_POST['category'], ['sushi','sashimi','rolls','appetizers','drinks']) ? $_POST['category'] : 'sushi';
         $img = trim($_POST['image']);
-        $pdo->prepare("UPDATE menu_items SET name=?, description=?, price=?, category=?, image=? WHERE id=?")->execute([$name, $desc, $price, $cat, $img, $id]);
+        $stock = max(0, (int)($_POST['stock'] ?? 0));
+        $available = !empty($_POST['available']) ? 1 : 0;
+        $pdo->prepare("UPDATE menu_items SET name=?, description=?, price=?, category=?, image=?, stock=?, available=? WHERE id=?")->execute([$name, $desc, $price, $cat, $img, $stock, $available, $id]);
         header('Location: admin.php?tab=menu&flash=1'); exit;
     }
     if ($_POST['action'] === 'delete_menu_item') {
@@ -61,6 +68,19 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
 }
 if ($loggedIn) {
     $pdo        = getDBConnection();
+    
+    // Auto-cleanup: Reset tables to available if reservation time has passed
+    $pdo->exec("
+        UPDATE tables t
+        LEFT JOIN reservations r ON t.id = r.table_id AND r.status != 'cancelled'
+        SET t.status = 'available'
+        WHERE t.status IN ('reserved', 'occupied')
+        AND (
+            r.id IS NULL 
+            OR CONCAT(r.reservation_date, ' ', r.reservation_time) < NOW() - INTERVAL 4 HOUR
+        )
+    ");
+
     $totalRes   = (int)$pdo->query("SELECT COUNT(*) FROM reservations")->fetchColumn();
     $pending    = (int)$pdo->query("SELECT COUNT(*) FROM reservations WHERE status='pending'")->fetchColumn();
     $confirmed  = (int)$pdo->query("SELECT COUNT(*) FROM reservations WHERE status='confirmed'")->fetchColumn();
@@ -535,8 +555,28 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       </div>
       
       <div style="margin:.5rem 0;">
+        <label style="font-size:.68rem;color:var(--muted);display:block;margin-bottom:.2rem;">Location</label>
+        <input type="text" name="location" value="<?= htmlspecialchars($t['location'] ?? 'Main Hall') ?>" class="act-select" style="width:100%;padding:.4rem;" placeholder="e.g., Window Side">
+      </div>
+      
+      <div style="margin:.5rem 0;">
+        <label style="font-size:.68rem;color:var(--muted);display:block;margin-bottom:.2rem;">Table Type</label>
+        <select name="table_type" class="act-select" style="width:100%;padding:.4rem;">
+          <option value="standard" <?= ($t['table_type'] ?? 'standard')==='standard'?'selected':'' ?>>Standard</option>
+          <option value="booth" <?= ($t['table_type'] ?? '')==='booth'?'selected':'' ?>>Booth</option>
+          <option value="counter" <?= ($t['table_type'] ?? '')==='counter'?'selected':'' ?>>Counter</option>
+          <option value="vip" <?= ($t['table_type'] ?? '')==='vip'?'selected':'' ?>>VIP</option>
+        </select>
+      </div>
+      
+      <div style="margin:.5rem 0;">
         <label style="font-size:.68rem;color:var(--muted);display:block;margin-bottom:.2rem;">Features</label>
         <input type="text" name="features" value="<?= htmlspecialchars($t['features'] ?? '') ?>" class="act-select" style="width:100%;padding:.4rem;" placeholder="e.g., Window view">
+      </div>
+      
+      <div style="margin:.5rem 0;display:flex;align-items:center;gap:.5rem;">
+        <input type="checkbox" name="is_smoking" value="1" <?= !empty($t['is_smoking'])?'checked':'' ?> style="width:16px;height:16px;">
+        <label style="font-size:.72rem;color:var(--muted);">Smoking Area</label>
       </div>
       
       <button type="submit" class="act-btn save" style="width:100%;justify-content:center;margin-top:.5rem;">Save Changes</button>
@@ -585,8 +625,16 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       </select>
     </div>
     <div>
+      <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Stock Quantity *</label>
+      <input type="number" name="stock" required min="0" value="100" class="act-select" style="width:100%;padding:.5rem;">
+    </div>
+    <div>
       <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Image Filename</label>
       <input type="text" name="image" class="act-select" style="width:100%;padding:.5rem;" placeholder="e.g., salmon-nigiri.jpg">
+    </div>
+    <div style="display:flex;align-items:center;gap:.5rem;">
+      <input type="checkbox" name="available" id="add_available" value="1" checked style="width:18px;height:18px;">
+      <label for="add_available" style="font-size:.75rem;color:var(--muted);cursor:pointer;">Available for pre-order</label>
     </div>
     <div style="grid-column:1/-1;">
       <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Description</label>
@@ -602,20 +650,23 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 <div class="data-wrap">
   <div style="overflow-x:auto;">
   <table class="data-table">
-    <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Description</th><th>Image</th><th>Actions</th></tr></thead>
+    <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Available</th><th>Description</th><th>Actions</th></tr></thead>
     <tbody>
     <?php 
     $categories = ['sushi'=>'Sushi','sashimi'=>'Sashimi','rolls'=>'Rolls','appetizers'=>'Appetizers','drinks'=>'Drinks'];
     foreach ($menuItems as $m): 
+    $stock = isset($m['stock']) ? $m['stock'] : 100;
+    $stockClass = $stock <= 10 ? 'pill-cancelled' : ($stock <= 30 ? 'pill-pending' : 'pill-confirmed');
     ?>
     <tr>
       <td><strong><?= htmlspecialchars($m['name']) ?></strong></td>
       <td><span class="pill pill-confirmed"><?= $categories[$m['category']] ?? $m['category'] ?></span></td>
       <td style="color:var(--gold);font-weight:600;">&#8369;<?= number_format($m['price'], 2) ?></td>
-      <td style="font-size:.75rem;max-width:250px;"><?= htmlspecialchars(substr($m['description'] ?? '', 0, 60)) ?><?= strlen($m['description'] ?? '') > 60 ? '...' : '' ?></td>
-      <td style="font-size:.72rem;color:var(--muted);"><?= htmlspecialchars($m['image'] ?? '—') ?></td>
+      <td><span class="pill <?= $stockClass ?>"><?= $stock ?> pcs</span></td>
+      <td><?= !empty($m['available']) ? '<span class="pill pill-confirmed">Yes</span>' : '<span class="pill pill-cancelled">No</span>' ?></td>
+      <td style="font-size:.75rem;max-width:200px;"><?= htmlspecialchars(substr($m['description'] ?? '', 0, 50)) ?><?= strlen($m['description'] ?? '') > 50 ? '...' : '' ?></td>
       <td>
-        <button class="act-btn" onclick="editMenu(<?= $m['id'] ?>,'<?= htmlspecialchars(addslashes($m['name'])) ?>','<?= htmlspecialchars(addslashes($m['description'] ?? '')) ?>',<?= $m['price'] ?>,'<?= $m['category'] ?>','<?= htmlspecialchars(addslashes($m['image'] ?? '')) ?>')">Edit</button>
+        <button class="act-btn" onclick="editMenu(<?= $m['id'] ?>,'<?= htmlspecialchars(addslashes($m['name'])) ?>','<?= htmlspecialchars(addslashes($m['description'] ?? '')) ?>',<?= $m['price'] ?>,'<?= $m['category'] ?>','<?= htmlspecialchars(addslashes($m['image'] ?? '')) ?>',<?= $m['stock'] ?? 0 ?>,<?= $m['available'] ?? 1 ?>)">Edit</button>
         <form method="POST" style="display:inline;" onsubmit="return confirm('Delete this item?')">
           <input type="hidden" name="action" value="delete_menu_item">
           <input type="hidden" name="menu_id" value="<?= $m['id'] ?>">
@@ -623,7 +674,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
         </form>
       </td>
     </tr>
-    <?php endforeach; if (empty($menuItems)): ?><tr><td colspan="6" class="empty-state">No menu items yet.</td></tr><?php endif; ?>
+    <?php endforeach; if (empty($menuItems)): ?><tr><td colspan="7" class="empty-state">No menu items yet.</td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>
@@ -654,8 +705,16 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
         </select>
       </div>
       <div>
+        <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Stock Quantity *</label>
+        <input type="number" name="stock" id="edit_stock" required min="0" class="act-select" style="width:100%;padding:.5rem;">
+      </div>
+      <div>
         <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Image Filename</label>
         <input type="text" name="image" id="edit_image" class="act-select" style="width:100%;padding:.5rem;">
+      </div>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <input type="checkbox" name="available" id="edit_available" value="1" style="width:18px;height:18px;">
+        <label for="edit_available" style="font-size:.75rem;color:var(--muted);cursor:pointer;">Available for pre-order</label>
       </div>
       <div style="grid-column:1/-1;">
         <label style="font-size:.7rem;color:var(--muted);display:block;margin-bottom:.3rem;">Description</label>
@@ -691,13 +750,15 @@ function filterTable() {
     row.style.display = matchStatus && matchSearch ? '' : 'none';
   });
 }
-function editMenu(id, name, desc, price, cat, img) {
+function editMenu(id, name, desc, price, cat, img, stock, available) {
   document.getElementById('edit_menu_id').value = id;
   document.getElementById('edit_name').value = name;
   document.getElementById('edit_description').value = desc;
   document.getElementById('edit_price').value = price;
   document.getElementById('edit_category').value = cat;
   document.getElementById('edit_image').value = img;
+  document.getElementById('edit_stock').value = stock || 0;
+  document.getElementById('edit_available').checked = available == 1;
   document.getElementById('editMenuModal').style.display = 'flex';
 }
 

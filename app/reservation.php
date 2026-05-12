@@ -2,11 +2,12 @@
 /**
  * Sakura Sushi - Reservation Form
  * Customer details, payment QR code, receipt upload
- * REQUIRES: table_id parameter (must select table first)
  */
 require_once 'config.php';
 
 $tableId = isset($_GET['table_id']) ? (int)$_GET['table_id'] : 0;
+$selectedDate = isset($_GET['date']) ? $_GET['date'] : date('Y-m-d');
+$selectedTime = isset($_GET['time']) ? $_GET['time'] : '';
 
 // Redirect to tables page if no table selected
 if ($tableId === 0) {
@@ -24,13 +25,6 @@ $table = $stmt->fetch();
 if (!$table) {
     header('Location: tables.php');
     exit;
-}
-
-// Generate time slots
-$timeSlots = [];
-for ($hour = 11; $hour <= 21; $hour++) {
-    $timeSlots[] = sprintf("%02d:00", $hour);
-    $timeSlots[] = sprintf("%02d:30", $hour);
 }
 ?>
 <!DOCTYPE html>
@@ -75,7 +69,7 @@ for ($hour = 11; $hour <= 21; $hour++) {
                 <div class="info-card-value">
                     Table <?php echo htmlspecialchars($table['table_number']); ?> 
                     &middot; <?php echo $table['capacity']; ?> seats 
-                    &middot; $<?php echo number_format($table['price'], 2); ?>
+                    &middot; ₱<?php echo number_format($table['price'], 2); ?>
                 </div>
             </div>
             <?php endif; ?>
@@ -110,20 +104,31 @@ for ($hour = 11; $hour <= 21; $hour++) {
                 <div class="form-group">
                     <label class="form-label" for="reservation_date">Reservation Date *</label>
                     <input type="date" id="reservation_date" name="reservation_date" class="form-input" 
+                           value="<?php echo htmlspecialchars($selectedDate); ?>"
                            min="<?php echo date('Y-m-d'); ?>" 
-                           max="<?php echo date('Y-m-d', strtotime('+30 days')); ?>" required>
+                           max="<?php echo date('Y-m-d', strtotime('+30 days')); ?>" required readonly>
                     <span class="form-error">Please select a date</span>
                 </div>
                 
                 <div class="form-group">
                     <label class="form-label">Reservation Time *</label>
-                    <input type="hidden" name="reservation_time" id="reservation_time_input">
-                    <div class="time-slots">
-                        <?php foreach ($timeSlots as $time): ?>
-                            <div class="time-slot" data-time="<?php echo $time; ?>">
-                                <?php echo date('g:i A', strtotime($time)); ?>
-                            </div>
-                        <?php endforeach; ?>
+                    <input type="hidden" name="reservation_time" id="reservation_time_input" value="<?php echo htmlspecialchars($selectedTime); ?>">
+                    <div class="info-card" style="padding: 16px; text-align: center;">
+                        <div style="font-size: 1.2rem; color: var(--color-accent); font-weight: 600;">
+                            <?php 
+                            if ($selectedTime) {
+                                $timeObj = DateTime::createFromFormat('H:i:s', $selectedTime);
+                                $endTime = clone $timeObj;
+                                $endTime->modify('+2 hours 30 minutes');
+                                echo $timeObj->format('g:i A') . ' - ' . $endTime->format('g:i A');
+                            } else {
+                                echo 'No time selected';
+                            }
+                            ?>
+                        </div>
+                        <div style="font-size: 0.85rem; color: rgba(253,246,236,.6); margin-top: 4px;">
+                            2.5 hour reservation
+                        </div>
                     </div>
                     <span class="form-error" id="time-error">Please select a time</span>
                 </div>

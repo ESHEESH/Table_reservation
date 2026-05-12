@@ -32,6 +32,9 @@ CREATE TABLE `tables` (
     `position_x` INT(11) DEFAULT 0,
     `position_y` INT(11) DEFAULT 0,
     `features` TEXT,
+    `location` VARCHAR(50) DEFAULT 'Main Hall',
+    `table_type` ENUM('standard','booth','counter','vip') DEFAULT 'standard',
+    `is_smoking` TINYINT(1) DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     UNIQUE KEY `table_number` (`table_number`),
@@ -73,6 +76,8 @@ CREATE TABLE `menu_items` (
     `price` DECIMAL(10,2) NOT NULL,
     `category` ENUM('sushi','sashimi','rolls','appetizers','drinks') NOT NULL,
     `image` VARCHAR(255) DEFAULT NULL,
+    `stock` INT(11) DEFAULT 100,
+    `available` TINYINT(1) DEFAULT 1,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
     KEY `category` (`category`)
@@ -98,41 +103,38 @@ CREATE TABLE `pre_orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Seed data for tables
-INSERT INTO `tables` (`table_number`, `capacity`, `price`, `status`, `position_x`, `position_y`, `features`) VALUES
-('T01', 2, 15.00, 'available', 0, 0, 'Window view, Natural lighting'),
-('T02', 2, 15.00, 'available', 1, 0, 'Window view, Natural lighting'),
-('T03', 4, 25.00, 'available', 2, 0, 'Private booth, Quiet corner'),
-('T04', 4, 25.00, 'available', 0, 1, 'Center stage, Sushi bar view'),
-('T05', 4, 25.00, 'available', 1, 1, 'Standard seating'),
-('T06', 6, 35.00, 'available', 2, 1, 'Family size, Spacious'),
-('T07', 6, 35.00, 'available', 0, 2, 'Corner private, Quiet'),
-('T08', 6, 35.00, 'available', 1, 2, 'Sushi bar view'),
-('T09', 8, 50.00, 'available', 2, 2, 'VIP section, Premium service'),
-('T10', 8, 50.00, 'available', 0, 3, 'VIP section, Premium service'),
-('T11', 2, 12.00, 'available', 1, 3, 'Counter seating, Watch chef'),
-('T12', 2, 12.00, 'available', 2, 3, 'Counter seating, Watch chef');
+INSERT INTO `tables` (`table_number`, `capacity`, `price`, `status`, `position_x`, `position_y`, `features`, `location`, `table_type`, `is_smoking`) VALUES
+('T01', 2, 150.00, 'available', 0, 0, 'Window view, Natural lighting', 'Window Side', 'standard', 0),
+('T02', 2, 150.00, 'available', 1, 0, 'Window view, Natural lighting', 'Window Side', 'standard', 0),
+('T03', 4, 250.00, 'available', 2, 0, 'Private booth, Quiet corner', 'Private Area', 'booth', 0),
+('T04', 4, 250.00, 'available', 0, 1, 'Center stage, Sushi bar view', 'Main Hall', 'standard', 0),
+('T05', 6, 350.00, 'available', 1, 1, 'Sushi bar view', 'Main Hall', 'counter', 0),
+('T06', 4, 250.00, 'available', 2, 1, 'Family size, Spacious', 'Main Hall', 'standard', 0),
+('T07', 8, 500.00, 'available', 0, 2, 'Corner private, Quiet', 'Private Area', 'booth', 0),
+('T08', 6, 350.00, 'available', 1, 2, 'Sushi bar view', 'Main Hall', 'counter', 0),
+('T09', 2, 150.00, 'available', 2, 2, 'VIP section, Premium service', 'VIP Section', 'vip', 0);
 
 -- Seed data for menu items
-INSERT INTO `menu_items` (`name`, `description`, `price`, `category`, `image`) VALUES
-('Salmon Nigiri', 'Fresh Norwegian salmon over seasoned sushi rice', 8.50, 'sushi', 'salmon-nigiri.jpg'),
-('Tuna Nigiri', 'Premium bluefin tuna over seasoned sushi rice', 10.00, 'sushi', 'tuna-nigiri.jpg'),
-('Ebi Nigiri', 'Sweet shrimp over seasoned sushi rice', 9.00, 'sushi', 'ebi-nigiri.jpg'),
-('Tamago Nigiri', 'Japanese sweet egg omelette over rice', 6.00, 'sushi', 'tamago-nigiri.jpg'),
-('Tuna Sashimi', 'Thinly sliced premium bluefin tuna, 6 pieces', 14.00, 'sashimi', 'tuna-sashimi.jpg'),
-('Salmon Sashimi', 'Thinly sliced fresh Norwegian salmon, 6 pieces', 12.00, 'sashimi', 'salmon-sashimi.jpg'),
-('Yellowtail Sashimi', 'Butter-soft yellowtail slices, 6 pieces', 15.00, 'sashimi', 'yellowtail-sashimi.jpg'),
-('Mixed Sashimi', 'Assorted chef selection of fresh fish, 12 pieces', 22.00, 'sashimi', 'mixed-sashimi.jpg'),
-('Dragon Roll', 'Shrimp tempura inside, eel and avocado on top', 16.00, 'rolls', 'dragon-roll.jpg'),
-('California Roll', 'Crab, avocado, and cucumber roll', 10.00, 'rolls', 'california-roll.jpg'),
-('Spicy Tuna Roll', 'Spicy tuna with cucumber and sesame seeds', 11.00, 'rolls', 'spicy-tuna-roll.jpg'),
-('Rainbow Roll', 'California roll topped with assorted fresh fish', 15.00, 'rolls', 'rainbow-roll.jpg'),
-('Edamame', 'Steamed soybeans with sea salt', 5.00, 'appetizers', 'edamame.jpg'),
-('Miso Soup', 'Traditional soybean paste soup with tofu and seaweed', 4.00, 'appetizers', 'miso-soup.jpg'),
-('Gyoza', 'Pan-fried pork and vegetable dumplings, 6 pieces', 7.00, 'appetizers', 'gyoza.jpg'),
-('Tempura', 'Assorted shrimp and vegetable tempura', 9.00, 'appetizers', 'tempura.jpg'),
-('Japanese Sake', 'Warm premium junmai sake, 180ml', 8.00, 'drinks', 'sake.jpg'),
-('Green Tea', 'Traditional Japanese green tea', 3.00, 'drinks', 'green-tea.jpg'),
-('Ramune', 'Japanese marble soda, original flavor', 4.00, 'drinks', 'ramune.jpg'),
-('Matcha Latte', 'Creamy matcha green tea latte', 5.50, 'drinks', 'matcha-latte.jpg');
+INSERT INTO `menu_items` (`name`, `description`, `price`, `category`, `image`, `stock`, `available`) VALUES
+('Salmon Nigiri', 'Fresh Norwegian salmon over seasoned sushi rice', 220.00, 'sushi', 'salmon-nigiri.jpg', 50, 1),
+('Tuna Nigiri', 'Premium bluefin tuna over seasoned sushi rice', 280.00, 'sushi', 'tuna-nigiri.jpg', 30, 1),
+('Ebi Nigiri', 'Sweet shrimp over seasoned sushi rice', 250.00, 'sushi', 'ebi-nigiri.jpg', 40, 1),
+('Tamago Nigiri', 'Japanese sweet egg omelette over rice', 180.00, 'sushi', 'tamago-nigiri.jpg', 60, 1),
+('Tuna Sashimi', 'Thinly sliced premium bluefin tuna, 6 pieces', 450.00, 'sashimi', 'tuna-sashimi.jpg', 25, 1),
+('Salmon Sashimi', 'Thinly sliced fresh Norwegian salmon, 6 pieces', 380.00, 'sashimi', 'salmon-sashimi.jpg', 35, 1),
+('Yellowtail Sashimi', 'Butter-soft yellowtail slices, 6 pieces', 480.00, 'sashimi', 'yellowtail-sashimi.jpg', 20, 1),
+('Mixed Sashimi', 'Assorted chef selection of fresh fish, 12 pieces', 650.00, 'sashimi', 'mixed-sashimi.jpg', 15, 1),
+('Dragon Roll', 'Shrimp tempura inside, eel and avocado on top', 520.00, 'rolls', 'dragon-roll.jpg', 30, 1),
+('California Roll', 'Crab, avocado, and cucumber roll', 320.00, 'rolls', 'california-roll.jpg', 50, 1),
+('Spicy Tuna Roll', 'Spicy tuna with cucumber and sesame seeds', 350.00, 'rolls', 'spicy-tuna-roll.jpg', 40, 1),
+('Rainbow Roll', 'California roll topped with assorted fresh fish', 480.00, 'rolls', 'rainbow-roll.jpg', 25, 1),
+('Edamame', 'Steamed soybeans with sea salt', 150.00, 'appetizers', 'edamame.jpg', 100, 1),
+('Miso Soup', 'Traditional soybean paste soup with tofu and seaweed', 120.00, 'appetizers', 'miso-soup.jpg', 80, 1),
+('Gyoza', 'Pan-fried pork and vegetable dumplings, 6 pieces', 220.00, 'appetizers', 'gyoza.jpg', 60, 1),
+('Tempura', 'Assorted shrimp and vegetable tempura', 280.00, 'appetizers', 'tempura.jpg', 45, 1),
+('Japanese Sake', 'Warm premium junmai sake, 180ml', 250.00, 'drinks', 'sake.jpg', 40, 1),
+('Green Tea', 'Traditional Japanese green tea', 80.00, 'drinks', 'green-tea.jpg', 100, 1),
+('Ramune', 'Japanese marble soda, original flavor', 120.00, 'drinks', 'ramune.jpg', 80, 1),
+('Matcha Latte', 'Creamy matcha green tea latte', 180.00, 'drinks', 'matcha-latte.jpg', 50, 1);
 
 SET FOREIGN_KEY_CHECKS = 1;

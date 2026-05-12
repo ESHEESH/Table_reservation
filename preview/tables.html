@@ -100,7 +100,7 @@
             { id: 12, table_number: 'T12', capacity: 2, price: 12.00, status: 'available', features: 'Counter seating, Watch chef' },
         ];
 
-        // QuickSort implementation
+        // QuickSort implementation pwede pa imrproved ang algorithm ani but this is the standard used algo
         function quickSort(arr, low, high, key = 'capacity') {
             if (low < high) {
                 const pi = partition(arr, low, high, key);
@@ -141,7 +141,7 @@
                     </svg>
                     ${table.capacity} seats
                 </div>
-                <div class="table-price">$${table.price.toFixed(2)}</div>
+                <div class="table-price">₱${table.price.toFixed(2)}</div>
             `;
             card.addEventListener('click', () => openPanel(table));
             grid.appendChild(card);
@@ -163,7 +163,7 @@
             
             document.getElementById('panel-table-num').textContent = table.table_number;
             document.getElementById('panel-capacity').textContent = `${table.capacity} guests`;
-            document.getElementById('panel-price').textContent = `$${table.price.toFixed(2)}`;
+            document.getElementById('panel-price').textContent = `₱${table.price.toFixed(2)}`;
             document.getElementById('panel-status').textContent = table.status.charAt(0).toUpperCase() + table.status.slice(1);
             
             const featuresList = document.getElementById('panel-features');
@@ -187,6 +187,8 @@
 
         document.getElementById('slide-close').addEventListener('click', closePanel);
         overlay.addEventListener('click', closePanel);
+
+        //should we add lazy loading para ma lessen ang bandwidth?
     </script>
 </body>
 </html>

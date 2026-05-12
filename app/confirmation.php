@@ -1,5 +1,7 @@
 <?php
 /**
+ * 
+ * CONTENT OF THE CODE
  * Sakura Sushi - Confirmation Page
  * Displays reservation code and summary
  * Uses Hash Table for O(1) reservation lookup
@@ -255,7 +257,7 @@ $total = $subtotal + $tax;
                     <?php foreach ($preOrders as $po): ?>
                     <div class="summary-detail">
                         <span class="summary-detail-label"><?php echo htmlspecialchars($po['item_name']); ?> x<?php echo $po['quantity']; ?></span>
-                        <span class="summary-detail-value">$<?php echo number_format($po['subtotal'], 2); ?></span>
+                        <span class="summary-detail-value">₱<?php echo number_format($po['subtotal'], 2); ?></span>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -264,21 +266,21 @@ $total = $subtotal + $tax;
                 <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--color-glass-border);">
                     <div class="summary-detail">
                         <span class="summary-detail-label">Table Reservation Fee</span>
-                        <span class="summary-detail-value">$<?php echo number_format($tableFee, 2); ?></span>
+                        <span class="summary-detail-value">₱<?php echo number_format($tableFee, 2); ?></span>
                     </div>
                     <?php if ($foodTotal > 0): ?>
                     <div class="summary-detail">
                         <span class="summary-detail-label">Food Subtotal</span>
-                        <span class="summary-detail-value">$<?php echo number_format($foodTotal, 2); ?></span>
+                        <span class="summary-detail-value">₱<?php echo number_format($foodTotal, 2); ?></span>
                     </div>
                     <div class="summary-detail">
                         <span class="summary-detail-label">Tax (8%)</span>
-                        <span class="summary-detail-value">$<?php echo number_format($tax, 2); ?></span>
+                        <span class="summary-detail-value">₱<?php echo number_format($tax, 2); ?></span>
                     </div>
                     <?php endif; ?>
                     <div class="summary-detail" style="font-size: 18px; font-weight: 700; color: var(--color-accent); margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-glass-border);">
                         <span>Total Paid</span>
-                        <span>$<?php echo number_format($total, 2); ?></span>
+                        <span>₱<?php echo number_format($total, 2); ?></span>
                     </div>
                 </div>
             </div>

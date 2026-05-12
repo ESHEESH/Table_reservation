@@ -60,15 +60,15 @@
         <div class="cart-summary">
             <div class="summary-row">
                 <span>Subtotal</span>
-                <span class="cart-subtotal" id="cart-subtotal">$0.00</span>
+                <span class="cart-subtotal" id="cart-subtotal">₱0.00</span>
             </div>
             <div class="summary-row">
                 <span>Tax (8%)</span>
-                <span class="cart-tax" id="cart-tax">$0.00</span>
+                <span class="cart-tax" id="cart-tax">₱0.00</span>
             </div>
             <div class="summary-row total">
                 <span>Total</span>
-                <span class="cart-total" id="cart-total">$0.00</span>
+                <span class="cart-total" id="cart-total">₱0.00</span>
             </div>
         </div>
         
@@ -242,7 +242,7 @@
                     <h3 class="menu-item-name">${item.name}</h3>
                     <p class="menu-item-desc">${item.description}</p>
                     <div class="menu-item-footer">
-                        <span class="menu-item-price">$${item.price.toFixed(2)}</span>
+                        <span class="menu-item-price">₱${item.price.toFixed(2)}</span>
                         <button class="btn btn-primary btn-add-to-cart" data-id="${item.id}" style="padding: 8px 16px; font-size: 14px;">Add to Order</button>
                     </div>
                 </div>
@@ -276,7 +276,7 @@
             });
         });
 
-        // Update cart UI
+        // Update cart UI mabuang ko diri shibal HASHA
         function updateCartUI() {
             const items = cart.toArray();
             const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -294,7 +294,7 @@
                         <img src="${item.image}" alt="${item.name}" class="cart-item-image" onerror="this.style.display='none'">
                         <div class="cart-item-info">
                             <div class="cart-item-name">${item.name}</div>
-                            <div class="cart-item-price">$${item.price.toFixed(2)}</div>
+                            <div class="cart-item-price">₱${item.price.toFixed(2)}</div>
                         </div>
                         <div class="cart-item-qty">x${item.quantity}</div>
                         <button class="qty-btn btn-remove-item" data-id="${item.id}">&times;</button>
@@ -314,13 +314,13 @@
             const tax = subtotal * 0.08;
             const total = subtotal + tax;
             
-            document.getElementById('cart-subtotal').textContent = '$' + subtotal.toFixed(2);
-            document.getElementById('cart-tax').textContent = '$' + tax.toFixed(2);
-            document.getElementById('cart-total').textContent = '$' + total.toFixed(2);
+            document.getElementById('cart-subtotal').textContent = '₱' + subtotal.toFixed(2);
+            document.getElementById('cart-tax').textContent = '₱' + tax.toFixed(2);
+            document.getElementById('cart-total').textContent = '₱' + total.toFixed(2);
             localStorage.setItem('sakura_cart_total', total.toFixed(2));
         }
 
-        // Cart panel
+        // Cart panel fixed the bugss
         document.getElementById('cart-toggle').addEventListener('click', () => {
             document.getElementById('cart-overlay').classList.add('active');
             document.getElementById('cart-panel').classList.add('active');
