@@ -165,7 +165,23 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 .topbar-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:.4rem .7rem;border-radius:8px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:.4rem;font-size:.75rem;font-family:inherit;text-decoration:none;}
 .topbar-btn:hover{border-color:var(--border-hv);color:var(--cream);}
 .topbar-date{font-size:.78rem;color:var(--muted);border-left:1px solid var(--border);padding-left:1rem;}
-.flash{background:rgba(61,153,112,.1);border:1px solid rgba(61,153,112,.25);color:var(--green);font-size:.75rem;padding:5px 12px;border-radius:6px;}
+
+/* TOAST */
+.toast-container{position:fixed;top:80px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:12px;}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:300px;max-width:400px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transform:translateX(100%);transition:all .3s cubic-bezier(0.68,-0.55,0.265,1.55);}
+.toast.show{opacity:1;transform:translateX(0);}
+.toast-icon{flex-shrink:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+.toast-message{flex:1;color:var(--cream);font-size:.9rem;line-height:1.4;}
+.toast-close{background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;padding:0;width:24px;height:24px;}
+.toast-close:hover{color:var(--cream);}
+.toast-success{border-left:4px solid var(--green);}
+.toast-success .toast-icon{color:var(--green);}
+.toast-error{border-left:4px solid var(--red);}
+.toast-error .toast-icon{color:var(--red);}
+.toast-warning{border-left:4px solid var(--amber);}
+.toast-warning .toast-icon{color:var(--amber);}
+.toast-info{border-left:4px solid var(--gold);}
+.toast-info .toast-icon{color:var(--gold);}
 
 /* MAIN */
 .main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
@@ -318,7 +334,6 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
     </svg>
   </button>
   <div class="topbar-title">桜 Sakura Admin</div>
-  <?php if ($flash): ?><span class="flash">Saved successfully</span><?php endif; ?>
   <div class="topbar-actions">
     <span class="topbar-date"><?= date('D, M j Y') ?></span>
     <a href="../index.php" target="_blank" class="topbar-btn">
@@ -770,6 +785,43 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 
 <script>
 let currentFilter = 'all';
+
+// Toast notification
+function showToast(message, type = 'success') {
+  let container = document.querySelector('.toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
+  
+  const icons = {
+    success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>',
+    error: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+    info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+  };
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <div class="toast-icon">${icons[type] || icons.info}</div>
+    <div class="toast-message">${message}</div>
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+  `;
+  
+  container.appendChild(toast);
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+// Show toast on page load if flash parameter exists
+<?php if ($flash): ?>
+showToast('Changes saved successfully!', 'success');
+<?php endif; ?>
+
 function setFilter(status, btn) {
   currentFilter = status;
   document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
