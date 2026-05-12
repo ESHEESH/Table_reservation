@@ -168,7 +168,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 
 /* TOAST */
 .toast-container{position:fixed;top:80px;right:20px;z-index:10000;display:flex;flex-direction:column;gap:12px;}
-.toast{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:300px;max-width:400px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transform:translateX(100%);transition:all .3s cubic-bezier(0.68,-0.55,0.265,1.55);}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:300px;max-width:400px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.4);opacity:0;transform:translateX(400px);transition:all .4s ease-out;}
 .toast.show{opacity:1;transform:translateX(0);}
 .toast-icon{flex-shrink:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
 .toast-message{flex:1;color:var(--cream);font-size:.9rem;line-height:1.4;}
