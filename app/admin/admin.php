@@ -13,12 +13,49 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
     if ($_POST['action'] === 'update_reservation_status') {
         $id = (int)$_POST['reservation_id'];
         $st = in_array($_POST['status'], ['pending','confirmed','cancelled']) ? $_POST['status'] : 'pending';
-        if ($st === 'cancelled') {
-            $r = $pdo->prepare("SELECT table_id FROM reservations WHERE id=?"); $r->execute([$id]); $row = $r->fetch();
-            if ($row && $row['table_id']) $pdo->prepare("UPDATE tables SET status='available' WHERE id=?")->execute([$row['table_id']]);
+        
+        // Check for conflicts if confirming
+        if ($st === 'confirmed') {
+            $r = $pdo->prepare("SELECT table_id, reservation_date, reservation_time FROM reservations WHERE id=?");
+            $r->execute([$id]);
+            $reservation = $r->fetch();
+            
+            if ($reservation && $reservation['table_id']) {
+                // Check if table is already confirmed for this time slot
+                $conflict = $pdo->prepare("
+                    SELECT id FROM reservations 
+                    WHERE table_id = ? 
+                    AND reservation_date = ? 
+                    AND reservation_time = ? 
+                    AND status = 'confirmed' 
+                    AND id != ?
+                ");
+                $conflict->execute([
+                    $reservation['table_id'],
+                    $reservation['reservation_date'],
+                    $reservation['reservation_time'],
+                    $id
+                ]);
+                
+                if ($conflict->fetch()) {
+                    header('Location: admin.php?tab=reservations&error=conflict'); 
+                    exit;
+                }
+            }
         }
+        
+        if ($st === 'cancelled') {
+            $r = $pdo->prepare("SELECT table_id FROM reservations WHERE id=?"); 
+            $r->execute([$id]); 
+            $row = $r->fetch();
+            if ($row && $row['table_id']) {
+                $pdo->prepare("UPDATE tables SET status='available' WHERE id=?")->execute([$row['table_id']]);
+            }
+        }
+        
         $pdo->prepare("UPDATE reservations SET status=? WHERE id=?")->execute([$st, $id]);
-        header('Location: admin.php?tab=reservations&flash=1'); exit;
+        header('Location: admin.php?tab=reservations&flash=1'); 
+        exit;
     }
     if ($_POST['action'] === 'update_table_status') {
         $tid = (int)$_POST['table_id'];
@@ -243,6 +280,13 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 .act-btn:hover{border-color:var(--border-hv);color:var(--cream);}
 .act-btn.save{border-color:rgba(201,150,79,.3);color:var(--gold);}
 .act-btn.save:hover{background:var(--gold-dim);}
+.act-btn.btn-confirm{border-color:rgba(61,153,112,.3);color:var(--green);background:rgba(61,153,112,.05);}
+.act-btn.btn-confirm:hover{background:rgba(61,153,112,.12);}
+.act-btn.btn-confirm:disabled{opacity:.4;cursor:not-allowed;border-color:var(--border);}
+.act-btn.btn-pending{border-color:rgba(230,126,34,.3);color:var(--amber);background:rgba(230,126,34,.05);}
+.act-btn.btn-pending:hover{background:rgba(230,126,34,.12);}
+.act-btn.btn-cancel{border-color:rgba(192,57,43,.3);color:var(--red);background:rgba(192,57,43,.05);}
+.act-btn.btn-cancel:hover{background:rgba(192,57,43,.12);}
 .act-btn svg{flex-shrink:0;}
 .preorder-tag{font-size:.68rem;color:var(--gold);background:var(--gold-dim);border:1px solid rgba(201,150,79,.2);padding:.12rem .45rem;border-radius:4px;}
 
@@ -482,16 +526,26 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       <td><div class="date-cell"><?= date('M j, Y', strtotime($r['reservation_date'])) ?></div><div class="date-sub"><?= date('g:i A', strtotime($r['reservation_time'])) ?></div></td>
       <td><span class="pill pill-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
       <td>
-        <form method="POST" class="act-row">
-          <input type="hidden" name="action" value="update_reservation_status">
-          <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
-          <select name="status" class="act-select">
-            <option value="pending" <?= $r['status']==='pending'?'selected':'' ?>>Pending</option>
-            <option value="confirmed" <?= $r['status']==='confirmed'?'selected':'' ?>>Confirmed</option>
-            <option value="cancelled" <?= $r['status']==='cancelled'?'selected':'' ?>>Cancelled</option>
-          </select>
-          <button type="submit" class="act-btn save">Save</button>
-        </form>
+        <div class="act-row">
+          <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="update_reservation_status">
+            <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+            <input type="hidden" name="status" value="confirmed">
+            <button type="submit" class="act-btn btn-confirm" <?= $r['status']==='confirmed'?'disabled':'' ?>>Confirm</button>
+          </form>
+          <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="update_reservation_status">
+            <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+            <input type="hidden" name="status" value="pending">
+            <button type="submit" class="act-btn btn-pending">Pending</button>
+          </form>
+          <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="update_reservation_status">
+            <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+            <input type="hidden" name="status" value="cancelled">
+            <button type="submit" class="act-btn btn-cancel">Cancel</button>
+          </form>
+        </div>
       </td>
     </tr>
     <?php endforeach; if (empty($recent)): ?><tr><td colspan="6" class="empty-state">No reservations yet.</td></tr><?php endif; ?>
@@ -539,16 +593,26 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       <?php else: ?><span style="color:var(--muted2);">—</span><?php endif; ?></td>
       <td><span class="pill pill-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
       <td>
-        <form method="POST" class="act-row">
-          <input type="hidden" name="action" value="update_reservation_status">
-          <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
-          <select name="status" class="act-select">
-            <option value="pending" <?= $r['status']==='pending'?'selected':'' ?>>Pending</option>
-            <option value="confirmed" <?= $r['status']==='confirmed'?'selected':'' ?>>Confirmed</option>
-            <option value="cancelled" <?= $r['status']==='cancelled'?'selected':'' ?>>Cancelled</option>
-          </select>
-          <button type="submit" class="act-btn save">Save</button>
-        </form>
+        <div class="act-row">
+          <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="update_reservation_status">
+            <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+            <input type="hidden" name="status" value="confirmed">
+            <button type="submit" class="act-btn btn-confirm" <?= $r['status']==='confirmed'?'disabled':'' ?>>Confirm</button>
+          </form>
+          <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="update_reservation_status">
+            <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+            <input type="hidden" name="status" value="pending">
+            <button type="submit" class="act-btn btn-pending">Pending</button>
+          </form>
+          <form method="POST" style="display:inline;">
+            <input type="hidden" name="action" value="update_reservation_status">
+            <input type="hidden" name="reservation_id" value="<?= $r['id'] ?>">
+            <input type="hidden" name="status" value="cancelled">
+            <button type="submit" class="act-btn btn-cancel">Cancel</button>
+          </form>
+        </div>
       </td>
     </tr>
     <?php endforeach; if (empty($allRes)): ?><tr><td colspan="10" class="empty-state">No reservations found.</td></tr><?php endif; ?>
@@ -820,6 +884,11 @@ function showToast(message, type = 'success') {
 // Show toast on page load if flash parameter exists
 <?php if ($flash): ?>
 showToast('Changes saved successfully!', 'success');
+<?php endif; ?>
+
+// Show error toast for conflicts
+<?php if (!empty($_GET['error']) && $_GET['error'] === 'conflict'): ?>
+showToast('Cannot confirm: Table is already confirmed for this time slot!', 'error');
 <?php endif; ?>
 
 function setFilter(status, btn) {

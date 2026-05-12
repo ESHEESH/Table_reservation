@@ -114,7 +114,7 @@ $imageMap = [
                 &middot; ₱<?php echo number_format($table['price'], 2); ?>
             </div>
             <div style="margin-top: 12px;">
-                <a href="reservation.php?table_id=<?php echo $tableId; ?>" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
+                <a href="reservation.php?table_id=<?php echo $tableId; ?>&from_menu=1" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
                     Skip to Reservation →
                 </a>
             </div>
@@ -204,7 +204,7 @@ $imageMap = [
         </div>
         
         <div class="panel-buttons">
-            <a href="reservation.php<?php echo $tableId ? '?table_id='.$tableId : ''; ?>" class="btn btn-primary btn-full">
+            <a href="reservation.php<?php echo $tableId ? '?table_id='.$tableId.'&from_menu=1' : '?from_menu=1'; ?>" class="btn btn-primary btn-full">
                 Proceed to Reservation
             </a>
             <button class="btn btn-glass btn-full btn-clear-cart">Clear Cart</button>
@@ -214,12 +214,14 @@ $imageMap = [
     <script src="assets/js/main.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Clear cart button
+            // Clear cart button - using cart.clear() which shows toast
             document.querySelector('.btn-clear-cart')?.addEventListener('click', () => {
-                if (confirm('Clear all items from your cart?')) {
-                    localStorage.removeItem('sakura_cart');
-                    localStorage.removeItem('sakura_cart_total');
-                    location.reload();
+                if (cart && cart.items.length > 0) {
+                    cart.clear();
+                    showToast('Cart cleared successfully', 'success');
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast('Cart is already empty', 'info');
                 }
             });
         });

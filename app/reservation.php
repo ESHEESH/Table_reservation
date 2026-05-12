@@ -145,6 +145,17 @@ if (!$table) {
                     <div id="cart-items-list"></div>
                 </div>
                 
+                <!-- Add Pre-Order Button -->
+                <div style="margin-top: 16px; padding: 12px; background: rgba(201,150,79,.05); border: 1px solid rgba(201,150,79,.2); border-radius: 12px; text-align: center;">
+                    <p style="font-size: 14px; color: rgba(253,246,236,.7); margin-bottom: 8px;">Want to pre-order food?</p>
+                    <a href="menu.php?table_id=<?php echo $tableId; ?>&from_reservation=1" class="btn btn-secondary" id="preorder-link" style="display: inline-block; text-decoration: none;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                            <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/>
+                        </svg>
+                        Add Pre-Order Items
+                    </a>
+                </div>
+                
                 <button type="submit" class="btn btn-primary btn-full" style="margin-top: 16px;">
                     Confirm Reservation
                 </button>
@@ -266,8 +277,117 @@ if (!$table) {
 
     <script src="assets/js/main.js"></script>
     <script>
+        // Save form data to localStorage before leaving page
+        async function saveFormData() {
+            const fileInput = document.getElementById('payment_receipt');
+            let receiptData = null;
+            
+            // Save file if uploaded
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                receiptData = await new Promise((resolve) => {
+                    reader.onload = (e) => {
+                        resolve({
+                            name: file.name,
+                            type: file.type,
+                            data: e.target.result
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            const formData = {
+                name: document.getElementById('name')?.value || '',
+                phone: document.getElementById('phone')?.value || '',
+                people_count: document.getElementById('people_count')?.value || '',
+                special_requests: document.getElementById('special_requests')?.value || '',
+                receipt: receiptData
+            };
+            localStorage.setItem('sakura_reservation_form', JSON.stringify(formData));
+        }
+        
+        // Restore form data from localStorage
+        function restoreFormData() {
+            const savedData = localStorage.getItem('sakura_reservation_form');
+            if (savedData) {
+                try {
+                    const formData = JSON.parse(savedData);
+                    if (formData.name) document.getElementById('name').value = formData.name;
+                    if (formData.phone) document.getElementById('phone').value = formData.phone;
+                    if (formData.people_count) document.getElementById('people_count').value = formData.people_count;
+                    if (formData.special_requests) document.getElementById('special_requests').value = formData.special_requests;
+                    
+                    // Restore file if exists
+                    if (formData.receipt) {
+                        const fileInput = document.getElementById('payment_receipt');
+                        if (fileInput) {
+                            // Convert base64 back to File
+                            fetch(formData.receipt.data)
+                                .then(res => res.blob())
+                                .then(blob => {
+                                    const file = new File([blob], formData.receipt.name, { type: formData.receipt.type });
+                                    const dataTransfer = new DataTransfer();
+                                    dataTransfer.items.add(file);
+                                    fileInput.files = dataTransfer.files;
+                                    
+                                    // Trigger change event to update UI
+                                    const event = new Event('change', { bubbles: true });
+                                    fileInput.dispatchEvent(event);
+                                });
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error restoring form data:', e);
+                }
+            }
+        }
+        
+        // Clear old cart data if coming directly (not from menu)
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromMenu = urlParams.get('from_menu');
+        
+        // If not coming from menu, clear any old cart data
+        if (!fromMenu || fromMenu === 'null' || fromMenu === '') {
+            localStorage.removeItem('sakura_cart');
+            localStorage.removeItem('sakura_cart_total');
+        }
+        
         // Check for cart data from pre-order
         document.addEventListener('DOMContentLoaded', () => {
+            // Restore form data if coming back from menu
+            if (fromMenu) {
+                restoreFormData();
+            }
+            
+            // Save form data whenever inputs change
+            const formInputs = ['name', 'phone', 'people_count', 'special_requests'];
+            formInputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', saveFormData);
+                    element.addEventListener('change', saveFormData);
+                }
+            });
+            
+            // Also save when file is uploaded
+            const fileInput = document.getElementById('payment_receipt');
+            if (fileInput) {
+                fileInput.addEventListener('change', saveFormData);
+            }
+            
+            // Handle pre-order link click - save form data first
+            const preorderLink = document.getElementById('preorder-link');
+            if (preorderLink) {
+                preorderLink.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    await saveFormData();
+                    window.location.href = preorderLink.href;
+                });
+            }
+            
             const cartData = localStorage.getItem('sakura_cart');
             const cartTotal = localStorage.getItem('sakura_cart_total');
             
@@ -282,7 +402,7 @@ if (!$table) {
                     items.forEach(item => {
                         html += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--color-glass-border);">
                             <span>${item.name} x${item.quantity}</span>
-                            <span>$${(item.price * item.quantity).toFixed(2)}</span>
+                            <span>₱${(item.price * item.quantity).toFixed(2)}</span>
                         </div>`;
                     });
                     listContainer.innerHTML = html;
@@ -291,8 +411,8 @@ if (!$table) {
                     const foodTotal = parseFloat(cartTotal) || 0;
                     const grandTotal = tablePrice + foodTotal;
                     
-                    document.getElementById('food-total-display').textContent = '$' + foodTotal.toFixed(2);
-                    document.getElementById('grand-total').textContent = '$' + grandTotal.toFixed(2);
+                    document.getElementById('food-total-display').textContent = '₱' + foodTotal.toFixed(2);
+                    document.getElementById('grand-total').textContent = '₱' + grandTotal.toFixed(2);
                 }
             }
             

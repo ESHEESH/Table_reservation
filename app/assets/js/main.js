@@ -661,8 +661,9 @@ const initReservationSubmit = () => {
             const result = await response.json();
             
             if (result.success) {
-                // Clear cart on success
+                // Clear cart and form data on success
                 cart.clear();
+                localStorage.removeItem('sakura_reservation_form');
                 // Redirect to pre-order prompt
                 window.location.href = result.redirect_url || `preorder-prompt.php?code=${result.confirmation_code}&table_id=${result.table_id}`;
             } else {

@@ -110,6 +110,13 @@ $total = $subtotal + $tax;
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .view-receipt-btn:hover {
+            background: rgba(201,150,79,.2) !important;
+            border-color: rgba(201,150,79,.5) !important;
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body class="page-transition">
     <!-- Navigation -->
@@ -283,6 +290,22 @@ $total = $subtotal + $tax;
                         <span>₱<?php echo number_format($total, 2); ?></span>
                     </div>
                 </div>
+                
+                <?php if (!empty($reservation['payment_receipt'])): ?>
+                <!-- Payment Receipt -->
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--color-glass-border);">
+                    <h4 style="margin-bottom: 12px; color: var(--color-accent);">Payment Receipt</h4>
+                    <button onclick="viewReceipt('<?php echo htmlspecialchars($reservation['payment_receipt']); ?>')" 
+                            class="view-receipt-btn"
+                            style="display: flex; align-items: center; gap: 8px; padding: 12px 20px; background: rgba(201,150,79,.1); border: 1px solid rgba(201,150,79,.3); border-radius: 10px; color: var(--color-accent); cursor: pointer; font-size: 14px; width: 100%; justify-content: center; transition: all .2s; font-family: inherit;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                        View Uploaded Receipt
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
             
             <!-- Actions -->
@@ -292,12 +315,41 @@ $total = $subtotal + $tax;
             </div>
         </div>
     </div>
+    
+    <!-- Receipt Viewer Modal -->
+    <div id="receiptModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.95);z-index:9999;align-items:center;justify-content:center;" onclick="closeReceiptModal()">
+        <div style="max-width:90%;max-height:90vh;position:relative;" onclick="event.stopPropagation()">
+            <button onclick="closeReceiptModal()" style="position:absolute;top:-50px;right:0;background:rgba(201,150,79,.2);border:1px solid rgba(201,150,79,.4);color:#FDF6EC;padding:10px 20px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .2s;">
+                ✕ Close
+            </button>
+            <img id="receiptImage" src="" alt="Payment Receipt" style="max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);">
+        </div>
+    </div>
 
     <script src="assets/js/main.js"></script>
     <script>
         // Clear cart data after successful reservation
         localStorage.removeItem('sakura_cart');
         localStorage.removeItem('sakura_cart_total');
+        
+        // Receipt viewer functions
+        function viewReceipt(url) {
+            const modal = document.getElementById('receiptModal');
+            const img = document.getElementById('receiptImage');
+            img.src = url;
+            modal.style.display = 'flex';
+        }
+        
+        function closeReceiptModal() {
+            document.getElementById('receiptModal').style.display = 'none';
+        }
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeReceiptModal();
+            }
+        });
     </script>
 </body>
 </html>
