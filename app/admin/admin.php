@@ -53,6 +53,15 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
             }
         }
         
+        if ($st === 'confirmed') {
+            $r = $pdo->prepare("SELECT table_id FROM reservations WHERE id=?"); 
+            $r->execute([$id]); 
+            $row = $r->fetch();
+            if ($row && $row['table_id']) {
+                $pdo->prepare("UPDATE tables SET status='reserved' WHERE id=?")->execute([$row['table_id']]);
+            }
+        }
+        
         $pdo->prepare("UPDATE reservations SET status=? WHERE id=?")->execute([$st, $id]);
         header('Location: admin.php?tab=reservations&flash=1'); 
         exit;

@@ -262,7 +262,7 @@ try {
         INSERT INTO reservations 
         (name, phone, people_count, table_id, confirmation_code, payment_receipt, 
          reservation_date, reservation_time, special_requests, status, has_pre_order, total_amount) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
     ");
     
     $stmt->execute([
@@ -292,11 +292,12 @@ try {
         }
     }
     
-    // Update table status if table_id provided
-    if ($tableId) {
-        $stmt = $pdo->prepare("UPDATE tables SET status = 'reserved' WHERE id = ?");
-        $stmt->execute([$tableId]);
-    }
+    // Don't update table status yet - wait for admin confirmation
+    // Table will be marked as 'reserved' when admin confirms the reservation
+    // if ($tableId) {
+    //     $stmt = $pdo->prepare("UPDATE tables SET status = 'reserved' WHERE id = ?");
+    //     $stmt->execute([$tableId]);
+    // }
     
     // Success response
     echo json_encode([
