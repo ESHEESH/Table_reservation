@@ -23,12 +23,18 @@
  *    - Collision detection via database uniqueness check
  *    - O(1) validation with indexed column
  * 
+ * 4. TABLE HOLD SYSTEM
+ *    - 5-minute temporary lock on table during form fill
+ *    - Prevents double booking and bot abuse
+ *    - Auto-expires if form not submitted
+ * 
  * OVERVIEW:
  * - Handles reservation form submission
  * - Validates customer details and table availability
  * - Manages file upload for payment receipts
  * - Integrates with Priority Queue for waitlist
  * - Calculates priority scores for VIP/early bookers
+ * - Releases table hold on successful submission
  * 
  * PRIORITY CALCULATION:
  * - VIP Platinum: priority = 1000
@@ -48,6 +54,8 @@
  * - Required fields: name, phone, people_count, date, time
  * - Phone format: 10+ digits with optional formatting
  * - Date range: Today to +30 days
+
+session_start(); // Start session to access hold data
  * - People count: 1-10 guests
  * - Table capacity check
  * - Payment receipt: JPG, PNG, PDF (max 5MB)
@@ -381,6 +389,18 @@ try {
     //     $stmt = $pdo->prepare("UPDATE tables SET status = 'reserved' WHERE id = ?");
     //     $stmt->execute([$tableId]);
     // }
+    
+    // Release table hold after successful reservation
+    if (isset($_SESSION['current_hold'])) {
+        $hold = $_SESSION['current_hold'];
+        $holdKey = $hold['table_id'] . '_' . $hold['date'] . '_' . $hold['time'];
+        
+        if (isset($_SESSION['table_holds'][session_id()][$holdKey])) {
+            unset($_SESSION['table_holds'][session_id()][$holdKey]);
+        }
+        
+        unset($_SESSION['current_hold']);
+    }
     
     // Success response
     echo json_encode([

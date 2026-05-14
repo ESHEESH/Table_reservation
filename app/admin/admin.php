@@ -133,6 +133,76 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
         header('Location: admin.php?tab=reservations&flash=1'); 
         exit;
     }
+    
+    // Seed data upload handler
+    if ($_POST['action'] === 'seed_reservations') {
+        if (isset($_FILES['seed_file']) && $_FILES['seed_file']['error'] === UPLOAD_ERR_OK) {
+            $fileContent = file_get_contents($_FILES['seed_file']['tmp_name']);
+            $seedData = json_decode($fileContent, true);
+            
+            if (json_last_error() === JSON_ERROR_NONE && isset($seedData['reservations'])) {
+                $inserted = 0;
+                $errors = [];
+                
+                require_once '../classes/VIPService.php';
+                $vipService = new VIPService($pdo);
+                
+                foreach ($seedData['reservations'] as $res) {
+                    try {
+                        // Generate confirmation code
+                        $code = 'SKR-' . strtoupper(substr(md5(uniqid()), 0, 6));
+                        
+                        // Calculate priority score
+                        $timestamp = time();
+                        $priorityScore = $vipService->calculatePriorityScore($res['phone'], $timestamp);
+                        
+                        // Insert reservation
+                        $stmt = $pdo->prepare("
+                            INSERT INTO reservations 
+                            (name, phone, people_count, table_id, confirmation_code, 
+                             reservation_date, reservation_time, special_requests, 
+                             status, total_amount, priority_score, booking_timestamp)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ");
+                        
+                        $stmt->execute([
+                            $res['name'],
+                            $res['phone'],
+                            $res['people_count'],
+                            $res['table_id'] ?? null,
+                            $code,
+                            $res['reservation_date'],
+                            $res['reservation_time'],
+                            $res['special_requests'] ?? '',
+                            $res['status'] ?? 'pending',
+                            $res['total_amount'] ?? 0,
+                            $priorityScore,
+                            $timestamp
+                        ]);
+                        
+                        $inserted++;
+                    } catch (Exception $e) {
+                        $errors[] = "Error inserting {$res['name']}: " . $e->getMessage();
+                    }
+                }
+                
+                $message = "$inserted reservations inserted successfully.";
+                if (!empty($errors)) {
+                    $message .= " Errors: " . implode(', ', array_slice($errors, 0, 3));
+                }
+                
+                header('Location: admin.php?tab=reservations&seed_success=' . urlencode($message));
+                exit;
+            } else {
+                header('Location: admin.php?tab=reservations&seed_error=Invalid JSON format');
+                exit;
+            }
+        } else {
+            header('Location: admin.php?tab=reservations&seed_error=File upload failed');
+            exit;
+        }
+    }
+    
     if ($_POST['action'] === 'update_table_status') {
         $tid = (int)$_POST['table_id'];
         $ts  = in_array($_POST['status'], ['available','reserved','occupied']) ? $_POST['status'] : 'available';
@@ -656,9 +726,30 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       <button class="chip active" onclick="setFilter('all',this)">All</button>
       <button class="chip c-pending" onclick="setFilter('pending',this)">Pending</button>
       <button class="chip c-confirmed" onclick="setFilter('confirmed',this)">Confirmed</button>
-      <button class="chip c-cancelled" onclick="setFilter('cancelled',this)">Cancelled</button>
     </div>
+    <button class="act-btn" onclick="document.getElementById('seedFileInput').click()" style="margin-left:auto;border-color:var(--gold);color:var(--gold);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Seed Data
+    </button>
+    <form id="seedForm" method="POST" enctype="multipart/form-data" style="display:none;">
+      <input type="hidden" name="action" value="seed_reservations">
+      <input type="file" id="seedFileInput" name="seed_file" accept=".json" onchange="document.getElementById('seedForm').submit()">
+    </form>
   </div>
+  <?php if (isset($_GET['seed_success'])): ?>
+  <div style="background:rgba(61,153,112,.1);border:1px solid rgba(61,153,112,.3);border-radius:8px;color:var(--green);padding:12px 16px;margin:12px;font-size:.85rem;">
+    ✓ <?= htmlspecialchars($_GET['seed_success']) ?>
+  </div>
+  <?php endif; ?>
+  <?php if (isset($_GET['seed_error'])): ?>
+  <div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);border-radius:8px;color:var(--red);padding:12px 16px;margin:12px;font-size:.85rem;">
+    ✗ <?= htmlspecialchars($_GET['seed_error']) ?>
+  </div>
+  <?php endif; ?>
   <div style="overflow-x:auto;">
   <table class="data-table" id="resTable">
     <thead><tr><th>Code</th><th>Customer</th><th>Table</th><th>Date &amp; Time</th><th>Guests</th><th>Fee</th><th>Pre-order</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead>

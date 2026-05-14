@@ -522,6 +522,57 @@ img {
 }
 
 /* ================================
+   HOLD TIMER BANNER
+   ================================ */
+.hold-timer-banner {
+    max-width: 1200px;
+    margin: -20px auto 30px;
+    padding: 0 40px;
+}
+
+.hold-timer-content {
+    background: linear-gradient(135deg, rgba(201, 150, 79, 0.15), rgba(201, 150, 79, 0.05));
+    border: 1px solid rgba(201, 150, 79, 0.3);
+    border-radius: 12px;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    color: var(--color-text-primary);
+}
+
+.hold-timer-content svg {
+    flex-shrink: 0;
+    color: var(--color-accent);
+}
+
+.hold-timer-content strong {
+    color: var(--color-accent);
+    font-weight: 700;
+    font-family: var(--font-mono);
+}
+
+.hold-timer-banner.expired {
+    animation: pulse-red 1s ease-in-out infinite;
+}
+
+.hold-timer-banner.expired .hold-timer-content {
+    background: linear-gradient(135deg, rgba(192, 57, 43, 0.15), rgba(192, 57, 43, 0.05));
+    border-color: rgba(192, 57, 43, 0.4);
+}
+
+.hold-timer-banner.expired .hold-timer-content svg,
+.hold-timer-banner.expired .hold-timer-content strong {
+    color: #c0392b;
+}
+
+@keyframes pulse-red {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* ================================
    TABLE GRID
    ================================ */
 .table-grid-container {

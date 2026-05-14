@@ -99,6 +99,17 @@ if (!$table) {
         <p class="page-subtitle">Fill in your details and complete payment to confirm</p>
     </header>
 
+    <!-- Hold Timer Banner -->
+    <div class="hold-timer-banner" id="holdTimerBanner">
+        <div class="hold-timer-content">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>We're holding this table for you for <strong id="timerDisplay">5:00</strong> minutes</span>
+        </div>
+    </div>
+
     <!-- Two Column Layout -->
     <div class="two-column">
         <!-- Left: Form -->
@@ -319,6 +330,112 @@ if (!$table) {
 
     <script src="assets/js/main.js"></script>
     <script>
+        // ===== TABLE HOLD TIMER SYSTEM =====
+        let holdTimer;
+        let holdExpiresAt;
+        const HOLD_DURATION = 5 * 60; // 5 minutes in seconds
+        
+        // Initialize hold when page loads
+        async function initializeHold() {
+            const tableId = <?php echo $tableId; ?>;
+            const date = '<?php echo $selectedDate; ?>';
+            const time = '<?php echo $selectedTime; ?>';
+            
+            try {
+                const response = await fetch('api/hold-table.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `table_id=${tableId}&date=${date}&time=${time}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    holdExpiresAt = data.expires_at;
+                    startTimer();
+                } else {
+                    alert('This table is no longer available. Redirecting...');
+                    window.location.href = 'tables.php?date=' + date;
+                }
+            } catch (error) {
+                console.error('Failed to hold table:', error);
+            }
+        }
+        
+        // Start countdown timer
+        function startTimer() {
+            updateTimerDisplay();
+            
+            holdTimer = setInterval(() => {
+                updateTimerDisplay();
+                
+                const remaining = holdExpiresAt - Math.floor(Date.now() / 1000);
+                
+                if (remaining <= 0) {
+                    clearInterval(holdTimer);
+                    handleExpiration();
+                }
+            }, 1000);
+        }
+        
+        // Update timer display
+        function updateTimerDisplay() {
+            const remaining = holdExpiresAt - Math.floor(Date.now() / 1000);
+            const minutes = Math.floor(remaining / 60);
+            const seconds = remaining % 60;
+            
+            const display = document.getElementById('timerDisplay');
+            const banner = document.getElementById('holdTimerBanner');
+            
+            if (remaining > 0) {
+                display.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                // Warning when under 1 minute
+                if (remaining <= 60) {
+                    banner.classList.add('expired');
+                }
+            } else {
+                display.textContent = '0:00';
+                banner.classList.add('expired');
+            }
+        }
+        
+        // Handle timer expiration
+        async function handleExpiration() {
+            await releaseHold();
+            alert('Your reservation time has expired. Please select a table again.');
+            window.location.href = 'tables.php?date=<?php echo $selectedDate; ?>';
+        }
+        
+        // Release hold
+        async function releaseHold() {
+            try {
+                await fetch('api/release-hold.php', {
+                    method: 'POST'
+                });
+            } catch (error) {
+                console.error('Failed to release hold:', error);
+            }
+        }
+        
+        // Release hold when leaving page
+        window.addEventListener('beforeunload', () => {
+            if (holdTimer) {
+                releaseHold();
+            }
+        });
+        
+        // Release hold when navigating back
+        document.querySelector('.nav-back')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await releaseHold();
+            window.location.href = 'tables.php?date=<?php echo $selectedDate; ?>';
+        });
+        
+        // Initialize hold on page load
+        initializeHold();
+        
+        // ===== FORM DATA PERSISTENCE =====
         // Save form data to localStorage before leaving page
         async function saveFormData() {
             console.log('=== Saving Form Data ===');
