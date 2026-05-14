@@ -1,0 +1,224 @@
+{
+  "reservations": [
+    {
+      "name": "Alice Johnson",
+      "phone": "555-0001",
+      "people_count": 4,
+      "table_id": 3,
+      "reservation_date": "2026-05-20",
+      "reservation_time": "14:00:00",
+      "special_requests": "Window seat preferred",
+      "status": "pending",
+      "total_amount": 25.00
+    },
+    {
+      "name": "Bob Smith",
+      "phone": "555-0002",
+      "people_count": 2,
+      "table_id": 1,
+      "reservation_date": "2026-05-20",
+      "reservation_time": "17:00:00",
+      "special_requests": "",
+      "status": "confirmed",
+      "total_amount": 15.00
+    },
+    {
+      "name": "Carol Williams",
+      "phone": "555-0003",
+      "people_count": 6,
+      "table_id": 6,
+      "reservation_date": "2026-05-20",
+      "reservation_time": "20:00:00",
+      "special_requests": "Birthday celebration",
+      "status": "pending",
+      "total_amount": 35.00
+    },
+    {
+      "name": "David Brown",
+      "phone": "555-0004",
+      "people_count": 3,
+      "table_id": 4,
+      "reservation_date": "2026-05-21",
+      "reservation_time": "14:00:00",
+      "special_requests": "Vegetarian options",
+      "status": "pending",
+      "total_amount": 25.00
+    },
+    {
+      "name": "Emma Davis",
+      "phone": "555-0005",
+      "people_count": 2,
+      "table_id": 2,
+      "reservation_date": "2026-05-21",
+      "reservation_time": "17:00:00",
+      "special_requests": "",
+      "status": "confirmed",
+      "total_amount": 15.00
+    },
+    {
+      "name": "Frank Miller",
+      "phone": "555-0006",
+      "people_count": 8,
+      "table_id": 9,
+      "reservation_date": "2026-05-21",
+      "reservation_time": "20:00:00",
+      "special_requests": "Corporate dinner",
+      "status": "pending",
+      "total_amount": 50.00
+    },
+    {
+      "name": "Grace Lee",
+      "phone": "555-0007",
+      "people_count": 4,
+      "table_id": 5,
+      "reservation_date": "2026-05-22",
+      "reservation_time": "14:00:00",
+      "special_requests": "Anniversary dinner",
+      "status": "confirmed",
+      "total_amount": 25.00
+    },
+    {
+      "name": "Henry Wilson",
+      "phone": "555-0008",
+      "people_count": 2,
+      "table_id": 11,
+      "reservation_date": "2026-05-22",
+      "reservation_time": "17:00:00",
+      "special_requests": "Counter seating",
+      "status": "pending",
+      "total_amount": 12.00
+    },
+    {
+      "name": "Iris Martinez",
+      "phone": "555-0009",
+      "people_count": 5,
+      "table_id": 7,
+      "reservation_date": "2026-05-22",
+      "reservation_time": "20:00:00",
+      "special_requests": "Family gathering",
+      "status": "pending",
+      "total_amount": 35.00
+    },
+    {
+      "name": "Jack Anderson",
+      "phone": "555-0010",
+      "people_count": 2,
+      "table_id": 12,
+      "reservation_date": "2026-05-23",
+      "reservation_time": "14:00:00",
+      "special_requests": "",
+      "status": "confirmed",
+      "total_amount": 12.00
+    },
+    {
+      "name": "Karen Taylor",
+      "phone": "555-0011",
+      "people_count": 4,
+      "table_id": 3,
+      "reservation_date": "2026-05-23",
+      "reservation_time": "17:00:00",
+      "special_requests": "Gluten-free options",
+      "status": "pending",
+      "total_amount": 25.00
+    },
+    {
+      "name": "Leo Thomas",
+      "phone": "555-0012",
+      "people_count": 6,
+      "table_id": 8,
+      "reservation_date": "2026-05-23",
+      "reservation_time": "20:00:00",
+      "special_requests": "Private booth",
+      "status": "confirmed",
+      "total_amount": 35.00
+    },
+    {
+      "name": "Maria Garcia",
+      "phone": "555-0013",
+      "people_count": 3,
+      "table_id": 4,
+      "reservation_date": "2026-05-24",
+      "reservation_time": "14:00:00",
+      "special_requests": "",
+      "status": "pending",
+      "total_amount": 25.00
+    },
+    {
+      "name": "Nathan Moore",
+      "phone": "555-0014",
+      "people_count": 2,
+      "table_id": 1,
+      "reservation_date": "2026-05-24",
+      "reservation_time": "17:00:00",
+      "special_requests": "Quiet area",
+      "status": "pending",
+      "total_amount": 15.00
+    },
+    {
+      "name": "Olivia Jackson",
+      "phone": "555-0015",
+      "people_count": 8,
+      "table_id": 10,
+      "reservation_date": "2026-05-24",
+      "reservation_time": "20:00:00",
+      "special_requests": "VIP section",
+      "status": "confirmed",
+      "total_amount": 50.00
+    },
+    {
+      "name": "Paul White",
+      "phone": "555-0016",
+      "people_count": 4,
+      "table_id": 5,
+      "reservation_date": "2026-05-25",
+      "reservation_time": "14:00:00",
+      "special_requests": "",
+      "status": "pending",
+      "total_amount": 25.00
+    },
+    {
+      "name": "Quinn Harris",
+      "phone": "555-0017",
+      "people_count": 2,
+      "table_id": 2,
+      "reservation_date": "2026-05-25",
+      "reservation_time": "17:00:00",
+      "special_requests": "Date night",
+      "status": "confirmed",
+      "total_amount": 15.00
+    },
+    {
+      "name": "Rachel Clark",
+      "phone": "555-0018",
+      "people_count": 6,
+      "table_id": 6,
+      "reservation_date": "2026-05-25",
+      "reservation_time": "20:00:00",
+      "special_requests": "Kids menu needed",
+      "status": "pending",
+      "total_amount": 35.00
+    },
+    {
+      "name": "Samuel Lewis",
+      "phone": "555-0019",
+      "people_count": 3,
+      "table_id": 4,
+      "reservation_date": "2026-05-26",
+      "reservation_time": "14:00:00",
+      "special_requests": "",
+      "status": "pending",
+      "total_amount": 25.00
+    },
+    {
+      "name": "Tina Robinson",
+      "phone": "555-0020",
+      "people_count": 2,
+      "table_id": 11,
+      "reservation_date": "2026-05-26",
+      "reservation_time": "17:00:00",
+      "special_requests": "Late dinner",
+      "status": "confirmed",
+      "total_amount": 12.00
+    }
+  ]
+}
