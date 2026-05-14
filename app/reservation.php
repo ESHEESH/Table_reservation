@@ -57,6 +57,17 @@ if (!$table) {
         <p class="page-subtitle">Fill in your details and complete payment to confirm</p>
     </header>
 
+    <!-- Hold Timer Banner -->
+    <div class="hold-timer-banner" id="holdTimerBanner" style="max-width:1200px;margin:-20px auto 30px;padding:0 40px;">
+        <div class="hold-timer-content" style="background:linear-gradient(135deg,rgba(201,150,79,.15),rgba(201,150,79,.05));border:1px solid rgba(201,150,79,.3);border-radius:12px;padding:16px 24px;display:flex;align-items:center;gap:12px;font-size:15px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:#c9964f;">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>We're holding this table for you for <strong id="timerDisplay" style="color:#c9964f;font-weight:700;">5:00</strong> minutes</span>
+        </div>
+    </div>
+
     <!-- Two Column Layout -->
     <div class="two-column">
         <!-- Left: Form -->
@@ -277,6 +288,87 @@ if (!$table) {
 
     <script src="assets/js/main.js"></script>
     <script>
+        // ===== TABLE HOLD TIMER (5 MINUTES) =====
+        let holdTimer;
+        let holdExpiresAt;
+        
+        async function initializeHold() {
+            const tableId = <?php echo $tableId; ?>;
+            const date = '<?php echo $selectedDate; ?>';
+            const time = '<?php echo $selectedTime; ?>';
+            
+            try {
+                const response = await fetch('api/hold-table.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `table_id=${tableId}&date=${date}&time=${time}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    holdExpiresAt = data.expires_at;
+                    startTimer();
+                } else {
+                    alert('This table is no longer available. Redirecting...');
+                    window.location.href = 'tables.php?date=' + date;
+                }
+            } catch (error) {
+                console.error('Failed to hold table:', error);
+            }
+        }
+        
+        function startTimer() {
+            updateTimerDisplay();
+            holdTimer = setInterval(() => {
+                updateTimerDisplay();
+                const remaining = holdExpiresAt - Math.floor(Date.now() / 1000);
+                if (remaining <= 0) {
+                    clearInterval(holdTimer);
+                    handleExpiration();
+                }
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            const remaining = holdExpiresAt - Math.floor(Date.now() / 1000);
+            const minutes = Math.floor(remaining / 60);
+            const seconds = remaining % 60;
+            const display = document.getElementById('timerDisplay');
+            if (remaining > 0) {
+                display.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            } else {
+                display.textContent = '0:00';
+            }
+        }
+        
+        async function handleExpiration() {
+            await releaseHold();
+            alert('Your reservation time has expired. Please select a table again.');
+            window.location.href = 'tables.php?date=<?php echo $selectedDate; ?>';
+        }
+        
+        async function releaseHold() {
+            try {
+                await fetch('api/release-hold.php', { method: 'POST' });
+            } catch (error) {
+                console.error('Failed to release hold:', error);
+            }
+        }
+        
+        window.addEventListener('beforeunload', () => {
+            if (holdTimer) releaseHold();
+        });
+        
+        document.querySelector('.nav-back')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            await releaseHold();
+            window.location.href = 'tables.php?date=<?php echo $selectedDate; ?>';
+        });
+        
+        initializeHold();
+        
+        // ===== FORM DATA PERSISTENCE =====
         // Save form data to localStorage before leaving page
         async function saveFormData() {
             console.log('=== Saving Form Data ===');

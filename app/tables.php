@@ -19,10 +19,11 @@ if ($selectedDate < $today || $selectedDate > $maxDate) {
 $stmt = $pdo->query("SELECT * FROM tables ORDER BY table_number");
 $tables = $stmt->fetchAll();
 
-// Time slots (2.5 hours each, operating 7 PM - 11 PM)
+// Time slots (3 hours each, operating 2 PM - 11 PM)
 $timeSlots = [
-    ['start' => '19:00:00', 'end' => '21:30:00', 'label' => '7:00 PM - 9:30 PM'],
-    ['start' => '20:30:00', 'end' => '23:00:00', 'label' => '8:30 PM - 11:00 PM']
+    ['start' => '14:00:00', 'end' => '17:00:00', 'label' => '2:00 PM - 5:00 PM'],
+    ['start' => '17:00:00', 'end' => '20:00:00', 'label' => '5:00 PM - 8:00 PM'],
+    ['start' => '20:00:00', 'end' => '23:00:00', 'label' => '8:00 PM - 11:00 PM']
 ];
 
 // Get all reservations for selected date
