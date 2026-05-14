@@ -205,9 +205,18 @@ if ($loggedIn) {
     $tablesAll  = $pdo->query("SELECT * FROM tables ORDER BY table_number")->fetchAll();
     $menuItems  = $pdo->query("SELECT * FROM menu_items ORDER BY category, name")->fetchAll();
     $search     = trim($_GET['search'] ?? '');
-    $allRes     = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id ORDER BY r.priority_score ASC, r.booking_timestamp ASC")->fetchAll();
+    
+    // Active reservations (pending and confirmed only)
+    $allRes     = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id WHERE r.status IN ('pending', 'confirmed') ORDER BY r.priority_score ASC, r.booking_timestamp ASC")->fetchAll();
+    
+    // History (cancelled and old confirmed reservations)
+    $historyRes = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id WHERE r.status = 'cancelled' OR (r.status = 'confirmed' AND r.reservation_date < CURDATE()) ORDER BY r.created_at DESC")->fetchAll();
+    
     if ($search !== '') {
         $allRes = array_values(array_filter($allRes, fn($r) =>
+            stripos($r['name'],$search)!==false || stripos($r['phone'],$search)!==false || stripos($r['confirmation_code'],$search)!==false
+        ));
+        $historyRes = array_values(array_filter($historyRes, fn($r) =>
             stripos($r['name'],$search)!==false || stripos($r['phone'],$search)!==false || stripos($r['confirmation_code'],$search)!==false
         ));
     }
@@ -482,6 +491,10 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       Reservations
       <?php if ($pending > 0): ?><span class="nav-badge"><?= $pending ?></span><?php endif; ?>
     </a>
+    <a href="admin.php?tab=history" class="nav-item <?= $activeTab==='history'?'active':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      History
+    </a>
     <a href="admin.php?tab=tables" class="nav-item <?= $activeTab==='tables'?'active':'' ?>">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="3" rx="1"/><path d="M6 9v9M18 9v9M4 18h16"/></svg>
       Tables
@@ -692,6 +705,55 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       </td>
     </tr>
     <?php endforeach; if (empty($allRes)): ?><tr><td colspan="10" class="empty-state">No reservations found.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php if ($activeTab === 'history'): ?>
+<div class="section-head"><span class="section-title">Booking History</span></div>
+<div class="data-wrap">
+  <div class="data-toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInputHistory" placeholder="Search name, code, phone..." oninput="filterHistoryTable()">
+    </div>
+    <div style="font-size:.75rem;color:var(--muted);margin-left:auto;">
+      Showing cancelled and past reservations
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+  <table class="data-table" id="historyTable">
+    <thead><tr><th>Code</th><th>Customer</th><th>Table</th><th>Date &amp; Time</th><th>Guests</th><th>Fee</th><th>Pre-order</th><th>Receipt</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody id="historyBody">
+    <?php foreach ($historyRes as $r): ?>
+    <tr data-search="<?= strtolower(htmlspecialchars($r['name'].$r['phone'].$r['confirmation_code'])) ?>">
+      <td><span class="code-cell"><?= htmlspecialchars($r['confirmation_code']) ?></span></td>
+      <td><div class="name-cell"><?= htmlspecialchars($r['name']) ?></div><div class="phone-cell"><?= htmlspecialchars($r['phone']) ?></div></td>
+      <td><?= htmlspecialchars($r['table_number'] ?? '—') ?></td>
+      <td><div class="date-cell"><?= date('M j, Y', strtotime($r['reservation_date'])) ?></div><div class="date-sub"><?= date('g:i A', strtotime($r['reservation_time'])) ?></div></td>
+      <td style="text-align:center;"><?= $r['people_count'] ?></td>
+      <td>&#8369;<?= number_format($r['table_price'] ?? 0, 2) ?></td>
+      <td><?= $r['po_count'] > 0 ? '<span class="preorder-tag">'.$r['po_count'].' items</span>' : '<span style="color:var(--muted2);">—</span>' ?></td>
+      <td><?php if ($r['payment_receipt']): ?>
+        <button class="act-btn" onclick="viewReceipt('../<?= htmlspecialchars($r['payment_receipt']) ?>')" title="View Receipt">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      <?php else: ?><span style="color:var(--muted2);">—</span><?php endif; ?></td>
+      <td><span class="pill pill-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
+      <td style="font-size:.72rem;color:var(--muted);">
+        <?php if ($r['status'] === 'cancelled'): ?>
+          Cancelled
+        <?php else: ?>
+          Completed
+        <?php endif; ?>
+      </td>
+    </tr>
+    <?php endforeach; if (empty($historyRes)): ?><tr><td colspan="10" class="empty-state">No history found.</td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>
@@ -979,6 +1041,13 @@ function filterTable() {
     const matchStatus = currentFilter === 'all' || row.dataset.status === currentFilter;
     const matchSearch = !q || row.dataset.search.includes(q);
     row.style.display = matchStatus && matchSearch ? '' : 'none';
+  });
+}
+function filterHistoryTable() {
+  const q = (document.getElementById('searchInputHistory')?.value || '').toLowerCase();
+  document.querySelectorAll('#historyBody tr[data-search]').forEach(row => {
+    const matchSearch = !q || row.dataset.search.includes(q);
+    row.style.display = matchSearch ? '' : 'none';
   });
 }
 function editMenu(id, name, desc, price, cat, img, stock, available) {
