@@ -1,5 +1,47 @@
 <?php
 /**
+ * ============================================================================
+ * RESERVATION FORM - ALGORITHM OVERVIEW
+ * ============================================================================
+ * 
+ * PRIMARY ALGORITHMS:
+ * 1. Form State Persistence (O(1)) - LocalStorage save/restore
+ * 2. Cart Integration (O(1)) - Pre-order data retrieval
+ * 3. Input Validation (O(1)) - Client-side form validation
+ * 
+ * DATA STRUCTURES:
+ * - LocalStorage (Key-Value Store) for form persistence
+ * - JSON for cart data serialization
+ * - DOM Tree for dynamic UI updates
+ * 
+ * COMPLEXITY ANALYSIS:
+ * - saveFormData(): O(1) - Constant time localStorage write
+ * - restoreFormData(): O(1) - Constant time localStorage read
+ * - Cart Display: O(n) - Linear iteration over n cart items
+ * - Form Validation: O(1) - Fixed number of field checks
+ * 
+ * WORKFLOW:
+ * 1. User selects table from tables.php (required)
+ * 2. Form pre-fills with table details and selected time
+ * 3. Optional: Navigate to menu.php for pre-order (form data saved)
+ * 4. Return from menu: Form data restored from localStorage
+ * 5. Upload payment receipt and submit
+ * 6. POST to api/create-reservation.php with multipart/form-data
+ * 
+ * FORM PERSISTENCE:
+ * - Saves on every input change to prevent data loss
+ * - Includes file upload (converted to base64)
+ * - Cleared after successful submission
+ * 
+ * INTEGRATION:
+ * - Receives: table_id, date, time from tables.php
+ * - Sends to: api/create-reservation.php (creates pending reservation)
+ * - Links to: menu.php (optional pre-order with state preservation)
+ * 
+ * ============================================================================
+ */
+
+/**
  * Sakura Sushi - Reservation Form
  * Customer details, payment QR code, receipt upload
  */

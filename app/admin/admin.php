@@ -1,4 +1,71 @@
 ﻿<?php
+/**
+ * ============================================================================
+ * SAKURA SUSHI - ADMIN PANEL
+ * ============================================================================
+ * 
+ * ALGORITHMS IMPLEMENTED:
+ * 
+ * 1. PRIORITY-BASED SORTING
+ *    - Reservations sorted by priority_score (ascending)
+ *    - VIPs appear first, then early bookers
+ *    - SQL: ORDER BY priority_score ASC, booking_timestamp ASC
+ *    - Complexity: O(n log n) - database sort with indexes
+ * 
+ * 2. LINEAR SEARCH with Filtering
+ *    - Real-time search across name, phone, confirmation code
+ *    - Client-side filtering for instant results
+ *    - PHP: stripos() for case-insensitive substring match
+ *    - JavaScript: includes() for real-time filtering
+ *    - Complexity: O(n × m) where n=reservations, m=field length
+ * 
+ * 3. CONFLICT DETECTION
+ *    - Checks for double-booking before confirmation
+ *    - Validates: same table + same date + same time
+ *    - Uses database query with indexed columns
+ *    - Complexity: O(1) with proper indexes
+ * 
+ * OVERVIEW:
+ * - Admin dashboard with statistics and management
+ * - Three main tabs: Dashboard, Reservations, Tables, Menu
+ * - Real-time status updates for reservations and tables
+ * - VIP customer management integration
+ * - Mobile-responsive with Bootstrap 5
+ * 
+ * FEATURES:
+ * - Session-based authentication (password: sakura2024)
+ * - Dashboard with 6 stat cards
+ * - Reservation management (pending → confirmed → cancelled)
+ * - Table management (capacity, price, features, type)
+ * - Menu item CRUD operations
+ * - Search and filter functionality
+ * - Priority-based reservation sorting
+ * - Conflict detection for confirmations
+ * - Mobile sliding sidebar navigation
+ * 
+ * DATA DISPLAY:
+ * - Reservations: Sorted by priority (VIPs first)
+ * - Tables: Grid view with inline editing
+ * - Menu: Table view with add/edit/delete
+ * - Statistics: Real-time counts and revenue
+ * 
+ * COMPLEXITY ANALYSIS:
+ * - Load reservations: O(n log n) - priority sort
+ * - Search reservations: O(n × m) - linear search
+ * - Update status: O(1) - indexed update
+ * - Conflict check: O(1) - indexed query
+ * - Load statistics: O(1) - aggregated queries
+ * 
+ * MOBILE FEATURES:
+ * - Hamburger menu for sidebar toggle
+ * - Touch-friendly interface
+ * - Responsive grid layouts
+ * - Overlay for sidebar on mobile
+ * 
+ * @version 2.0
+ * @author Sakura Sushi Development Team
+ * ============================================================================
+ */
 require_once '../config.php';
 session_start();
 $adminPass = 'sakura2024';
@@ -138,7 +205,7 @@ if ($loggedIn) {
     $tablesAll  = $pdo->query("SELECT * FROM tables ORDER BY table_number")->fetchAll();
     $menuItems  = $pdo->query("SELECT * FROM menu_items ORDER BY category, name")->fetchAll();
     $search     = trim($_GET['search'] ?? '');
-    $allRes     = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id ORDER BY FIELD(r.status,'pending','confirmed','cancelled'), r.created_at DESC")->fetchAll();
+    $allRes     = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id ORDER BY r.priority_score ASC, r.booking_timestamp ASC")->fetchAll();
     if ($search !== '') {
         $allRes = array_values(array_filter($allRes, fn($r) =>
             stripos($r['name'],$search)!==false || stripos($r['phone'],$search)!==false || stripos($r['confirmation_code'],$search)!==false

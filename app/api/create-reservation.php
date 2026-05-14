@@ -1,10 +1,71 @@
 <?php
 /**
- * Sakura Sushi - Create Reservation API
- * Handles reservation form submission with file upload
- * Uses Hash Table for confirmation code generation and lookup
+ * ============================================================================
+ * SAKURA SUSHI - CREATE RESERVATION API
+ * ============================================================================
+ * 
+ * ALGORITHMS IMPLEMENTED:
+ * 
+ * 1. PRIORITY QUEUE (Min-Heap) for Waitlist
+ *    - VIP customers get highest priority
+ *    - Early bookers get priority over late bookers
+ *    - O(log n) enqueue/dequeue operations
+ *    - Priority scores: 1000 (Platinum) to 5000+ (Regular)
+ * 
+ * 2. VIP IDENTIFICATION SYSTEM
+ *    - Phone number-based lookup via database index
+ *    - O(1) VIP status check using B-tree index
+ *    - Auto-promotion based on booking history
+ * 
+ * 3. HASH-BASED CODE GENERATION
+ *    - Generates unique confirmation codes
+ *    - Format: SKR-XXXXXX (6 alphanumeric characters)
+ *    - Collision detection via database uniqueness check
+ *    - O(1) validation with indexed column
+ * 
+ * OVERVIEW:
+ * - Handles reservation form submission
+ * - Validates customer details and table availability
+ * - Manages file upload for payment receipts
+ * - Integrates with Priority Queue for waitlist
+ * - Calculates priority scores for VIP/early bookers
+ * 
+ * PRIORITY CALCULATION:
+ * - VIP Platinum: priority = 1000
+ * - VIP Gold: priority = 2000
+ * - VIP Silver: priority = 3000
+ * - VIP Bronze: priority = 4000
+ * - Regular: priority = 5000 + timestamp
+ * 
+ * COMPLEXITY ANALYSIS:
+ * - VIP check: O(1) - database index lookup
+ * - Priority calculation: O(1) - constant time
+ * - Waitlist enqueue: O(log n) - min-heap operation
+ * - Code generation: O(1) average - hash-based with retry
+ * - Insert reservation: O(1) - database insert
+ * 
+ * VALIDATION:
+ * - Required fields: name, phone, people_count, date, time
+ * - Phone format: 10+ digits with optional formatting
+ * - Date range: Today to +30 days
+ * - People count: 1-10 guests
+ * - Table capacity check
+ * - Payment receipt: JPG, PNG, PDF (max 5MB)
+ * 
+ * FEATURES:
+ * - VIP priority in waitlist
+ * - Early booker advantage
+ * - Pre-order integration
+ * - File upload with SHA-256 hashing
+ * - Automatic table status management
+ * 
+ * @version 2.0
+ * @author Sakura Sushi Development Team
+ * ============================================================================
  */
 require_once '../config.php';
+require_once '../classes/PriorityQueue.php';
+require_once '../classes/VIPService.php';
 
 header('Content-Type: application/json');
 
@@ -171,9 +232,14 @@ try {
         }
         
         if ($table['status'] === 'occupied') {
-            // Table is occupied - add to waitlist queue
-            $waitlist = new WaitlistQueue();
-            $waitlist->load();
+            // Table is occupied - add to PRIORITY waitlist queue
+            $vipService = new VIPService($pdo);
+            $priorityQueue = new PriorityQueue();
+            $priorityQueue->load();
+            
+            // Check if customer is VIP
+            $vipLevel = $vipService->isVIP($phone);
+            $isVip = ($vipLevel !== null);
             
             $waitlistData = [
                 'name' => $name,
@@ -182,15 +248,23 @@ try {
                 'table_id' => $tableId,
                 'reservation_date' => $reservationDate,
                 'reservation_time' => $reservationTime,
-                'requested_at' => date('Y-m-d H:i:s')
+                'requested_at' => date('Y-m-d H:i:s'),
+                'is_vip' => $isVip,
+                'vip_level' => $vipLevel
             ];
             
-            $waitlist->enqueue($waitlistData);
+            $priority = $priorityQueue->enqueue($waitlistData, $isVip, $vipLevel);
+            
+            $priorityMessage = $isVip ? 
+                "As a VIP $vipLevel member, you have priority access!" : 
+                "Early bookers get priority!";
             
             echo json_encode([
                 'success' => false, 
-                'message' => 'This table is currently occupied. You have been added to the waitlist (position #' . $waitlist->getSize() . '). We will contact you when it becomes available.',
-                'waitlisted' => true
+                'message' => "This table is currently occupied. You have been added to the priority waitlist (position #" . $priorityQueue->getSize() . "). $priorityMessage We will contact you when it becomes available.",
+                'waitlisted' => true,
+                'is_vip' => $isVip,
+                'priority' => $priority
             ]);
             exit;
         }
@@ -257,17 +331,26 @@ try {
     // Generate confirmation code
     $confirmationCode = generateConfirmationCode($pdo);
     
-    // Insert reservation
+    // Check VIP status and calculate priority
+    $vipService = new VIPService($pdo);
+    $vipLevel = $vipService->isVIP($phone);
+    $isVip = ($vipLevel !== null) ? 1 : 0;
+    $bookingTimestamp = time();
+    $priorityScore = $vipService->calculatePriorityScore($phone, $bookingTimestamp);
+    
+    // Insert reservation with VIP and priority data
     $stmt = $pdo->prepare("
         INSERT INTO reservations 
         (name, phone, people_count, table_id, confirmation_code, payment_receipt, 
-         reservation_date, reservation_time, special_requests, status, has_pre_order, total_amount) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+         reservation_date, reservation_time, special_requests, status, is_vip, 
+         priority_score, booking_timestamp, has_pre_order, total_amount) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?)
     ");
     
     $stmt->execute([
         $name, $phone, $peopleCount, $tableId, $confirmationCode, $receiptPath,
-        $reservationDate, $reservationTime, $specialRequests, $hasPreOrder, $totalAmount
+        $reservationDate, $reservationTime, $specialRequests, $isVip, 
+        $priorityScore, $bookingTimestamp, $hasPreOrder, $totalAmount
     ]);
     
     $reservationId = $pdo->lastInsertId();

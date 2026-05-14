@@ -1,5 +1,40 @@
 <?php
 /**
+ * ============================================================================
+ * DATABASE CONFIGURATION - ALGORITHM OVERVIEW
+ * ============================================================================
+ * 
+ * PRIMARY ALGORITHMS:
+ * 1. Singleton Pattern (O(1)) - Single database connection reuse
+ * 2. Database Seeding (O(n)) - Initial data population
+ * 
+ * DATA STRUCTURES:
+ * - Static Variable (Singleton) for PDO connection caching
+ * - Relational Database Schema with Foreign Keys
+ * 
+ * COMPLEXITY ANALYSIS:
+ * - getDBConnection(): O(1) - Returns cached connection after first call
+ * - initDatabase(): O(1) - Table existence checks with CREATE IF NOT EXISTS
+ * - seedTables(): O(n) - Linear insertion of n table records
+ * - seedMenu(): O(n) - Linear insertion of n menu items
+ * 
+ * DATABASE SCHEMA:
+ * - tables: Restaurant table inventory with capacity/pricing
+ * - reservations: Customer bookings with priority_score for VIP system
+ * - menu_items: Food menu with categories and pricing
+ * - pre_orders: Junction table linking reservations to menu items
+ * - vip_customers: VIP tier system with booking history
+ * 
+ * INDEXES:
+ * - tables.table_number (UNIQUE) - O(1) lookup
+ * - reservations.confirmation_code (UNIQUE) - O(1) lookup
+ * - reservations.phone (INDEX) - O(1) VIP customer lookup
+ * - vip_customers.phone (INDEX) - O(1) VIP status check
+ * 
+ * ============================================================================
+ */
+
+/**
  * Sakura Sushi Reservation System - Database Configuration
  * Data Structures & Algorithms Project
  */

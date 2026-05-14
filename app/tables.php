@@ -1,7 +1,49 @@
 <?php
 /**
- * Sakura Sushi - Table Reservation with Calendar & Time Slots
- * Shows availability grid like pickleball court booking
+ * ============================================================================
+ * SAKURA SUSHI - TABLE SELECTION WITH CALENDAR & TIME SLOTS
+ * ============================================================================
+ * 
+ * ALGORITHM: Time Slot Availability Matrix
+ * 
+ * OVERVIEW:
+ * - Displays table availability in calendar grid format
+ * - Shows 2.5-hour time slots (7 PM - 11 PM operating hours)
+ * - Real-time availability checking with conflict detection
+ * - Color-coded status: Available (green), Booked (red), Pending (yellow)
+ * 
+ * DATA STRUCTURES:
+ * 1. 2D Associative Array (Availability Matrix)
+ *    - Structure: availability[table_id][time_slot] = status
+ *    - Allows O(1) lookup for any table-time combination
+ *    - Memory: O(tables × time_slots)
+ * 
+ * ALGORITHM FLOW:
+ * 1. Fetch all tables from database
+ * 2. Initialize availability matrix (all available)
+ * 3. Query reservations for selected date
+ * 4. Mark booked/pending slots in matrix
+ * 5. Render grid with color coding
+ * 
+ * COMPLEXITY ANALYSIS:
+ * - Initialize matrix: O(t × s) where t=tables, s=slots
+ * - Mark reservations: O(r × s) where r=reservations
+ * - Total: O((t + r) × s)
+ * - Lookup availability: O(1)
+ * 
+ * TIME SLOTS:
+ * - Slot 1: 7:00 PM - 9:30 PM (2.5 hours)
+ * - Slot 2: 8:30 PM - 11:00 PM (2.5 hours)
+ * - Overlap: 8:30 PM - 9:30 PM (1 hour)
+ * 
+ * OPTIMIZATION:
+ * - Database query filtered by date (indexed)
+ * - Matrix stored in memory for fast access
+ * - Future: Add Redis caching for availability map
+ * 
+ * @version 2.0
+ * @author Sakura Sushi Development Team
+ * ============================================================================
  */
 require_once 'config.php';
 

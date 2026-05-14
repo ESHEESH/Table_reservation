@@ -1,5 +1,34 @@
 <?php
 /**
+ * ============================================================================
+ * LANDING PAGE - ALGORITHM OVERVIEW
+ * ============================================================================
+ * 
+ * PRIMARY ALGORITHMS:
+ * - None (Static HTML presentation layer)
+ * 
+ * DATA STRUCTURES:
+ * - DOM Tree (HTML structure)
+ * - CSS Animations (Keyframe-based)
+ * 
+ * COMPLEXITY ANALYSIS:
+ * - Page Load: O(1) - Static content rendering
+ * - CSS Animations: O(1) - GPU-accelerated transforms
+ * 
+ * PURPOSE:
+ * Entry point for the reservation system. Provides navigation to:
+ * - tables.php: Table selection with availability calendar
+ * - Direct reservation flow enforcement
+ * 
+ * DESIGN PATTERN:
+ * - Glassmorphism UI with animated cherry blossom petals
+ * - Responsive navigation with Montserrat font
+ * - Hero section with call-to-action button
+ * 
+ * ============================================================================
+ */
+
+/**
  * Sakura Sushi - Landing Page
  * Glassmorphism hero with animated background
  */

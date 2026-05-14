@@ -1,9 +1,53 @@
 <?php
 /**
- * Sakura Sushi - Pre-Order Menu
- * Sushi menu with category filtering and cart
- * Uses Linked List for cart management
- * REQUIRES: table_id parameter (must select table first)
+ * ============================================================================
+ * SAKURA SUSHI - PRE-ORDER MENU SYSTEM
+ * ============================================================================
+ * 
+ * ALGORITHM: Category-Based Menu Display with Cart Integration
+ * 
+ * OVERVIEW:
+ * - Displays menu items grouped by category
+ * - Integrates with HashMap + Doubly Linked List cart (client-side)
+ * - Requires table selection before access (enforced flow)
+ * - Real-time cart updates with instant item lookup
+ * 
+ * DATA STRUCTURES:
+ * 1. Database Query Result (Array of menu items)
+ *    - Sorted by category, then name
+ *    - SQL: ORDER BY category, name
+ * 
+ * 2. Client-Side Cart (HashMap + Doubly Linked List)
+ *    - Implemented in main.js
+ *    - O(1) add, remove, find, update operations
+ *    - Maintains insertion order
+ * 
+ * CART OPERATIONS (Client-Side):
+ * - Add item: O(1) via HashMap
+ * - Remove item: O(1) via HashMap + doubly linked pointers
+ * - Find item: O(1) via HashMap lookup
+ * - Update quantity: O(1) via HashMap
+ * - Get all items: O(n) traverse doubly linked list
+ * 
+ * COMPLEXITY ANALYSIS:
+ * - Load menu: O(n log n) - database sort
+ * - Display items: O(n) - iterate and render
+ * - Cart operations: O(1) - hash map access
+ * 
+ * FEATURES:
+ * - Category filtering (All, Sushi, Sashimi, Rolls, Appetizers, Drinks)
+ * - Image fallback with emoji icons
+ * - Real-time cart total calculation
+ * - LocalStorage persistence
+ * 
+ * VALIDATION:
+ * - Requires table_id parameter
+ * - Redirects to tables.php if no table selected
+ * - Validates table exists in database
+ * 
+ * @version 2.0
+ * @author Sakura Sushi Development Team
+ * ============================================================================
  */
 require_once 'config.php';
 
