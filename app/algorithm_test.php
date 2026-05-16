@@ -24,8 +24,17 @@
  */
 
 require_once 'config.php';
-require_once 'classes/PriorityQueue.php';
-require_once 'classes/VIPService.php';
+
+// Check if optimized classes exist (for v3/v2 branches)
+$hasPriorityQueue = file_exists('classes/PriorityQueue.php');
+$hasVIPService = file_exists('classes/VIPService.php');
+
+if ($hasPriorityQueue) {
+    require_once 'classes/PriorityQueue.php';
+}
+if ($hasVIPService) {
+    require_once 'classes/VIPService.php';
+}
 
 // Enable error reporting
 error_reporting(E_ALL);
@@ -499,142 +508,11 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// TEST 3: PRIORITY QUEUE (MIN-HEAP)
+// TEST 3: HASH-BASED CODE GENERATION
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 3: Priority Queue (Min-Heap) <span class="complexity">O(log n)</span></h2>';
-echo '<div class="test-info">';
-echo '<p><strong>Algorithm:</strong> Binary Min-Heap for VIP Priority Management</p>';
-echo '<p><strong>Operations:</strong> Insert with priority + Extract highest priority</p>';
-echo '<p><strong>Test Sizes:</strong> 100, 500, 1000 records × 5 runs each</p>';
-echo '</div>';
-
-echo '<table>';
-echo '<thead><tr><th>Input Size</th><th>Run</th><th>Insert Time (ms)</th><th>Extract Time (ms)</th><th>Status</th></tr></thead>';
-echo '<tbody>';
-
-foreach ($testSizes as $size) {
-    $insertTimes = [];
-    $extractTimes = [];
-    
-    for ($run = 1; $run <= $runsPerTest; $run++) {
-        $pq = new PriorityQueue();
-        $testData = loadSeedData($size, $run);
-        
-        $startTime = microtime(true);
-        foreach ($testData as $data) {
-            $isVip = ($data['is_vip'] ?? 0) == 1;
-            $vipLevel = $isVip ? ['platinum', 'gold', 'silver', 'bronze'][rand(0, 3)] : null;
-            $pq->enqueue($data, $isVip, $vipLevel);
-        }
-        $insertTime = (microtime(true) - $startTime) * 1000;
-        $insertTimes[] = $insertTime;
-        
-        $startTime = microtime(true);
-        $extracted = 0;
-        while (!$pq->isEmpty() && $extracted < min(50, $size)) {
-            $pq->dequeue();
-            $extracted++;
-        }
-        $extractTime = (microtime(true) - $startTime) * 1000;
-        $extractTimes[] = $extractTime;
-        
-        echo '<tr>';
-        echo '<td>' . $size . '</td>';
-        echo '<td><span class="run-number">Run ' . $run . '</span></td>';
-        echo '<td class="time-value">' . number_format($insertTime, 2) . ' ms</td>';
-        echo '<td class="time-value">' . number_format($extractTime, 2) . ' ms</td>';
-        echo '<td class="status-success">✓ Success</td>';
-        echo '</tr>';
-    }
-    
-    echo '<tr class="average-row">';
-    echo '<td>' . $size . '</td>';
-    echo '<td><strong>AVERAGE</strong></td>';
-    echo '<td class="time-value">' . number_format(array_sum($insertTimes) / count($insertTimes), 2) . ' ms</td>';
-    echo '<td class="time-value">' . number_format(array_sum($extractTimes) / count($extractTimes), 2) . ' ms</td>';
-    echo '<td class="status-success">✓ Completed</td>';
-    echo '</tr>';
-}
-
-echo '</tbody></table>';
-echo '</div>';
-
-?>
-
-<?php
-
-// ============================================================================
-// TEST 4: VIP SERVICE HASH LOOKUP
-// ============================================================================
-
-echo '<div class="test-section">';
-echo '<h2>Test 4: VIP Service Hash Lookup <span class="complexity">O(1)</span></h2>';
-echo '<div class="test-info">';
-echo '<p><strong>Algorithm:</strong> Hash-based Customer Tier Lookup with B-tree Index</p>';
-echo '<p><strong>Operations:</strong> Create VIP customers + Lookup by phone</p>';
-echo '<p><strong>Test Sizes:</strong> 100, 500, 1000 records × 5 runs each</p>';
-echo '</div>';
-
-echo '<table>';
-echo '<thead><tr><th>Input Size</th><th>Run</th><th>Create Time (ms)</th><th>Lookup Time (ms)</th><th>Status</th></tr></thead>';
-echo '<tbody>';
-
-foreach ($testSizes as $size) {
-    $createTimes = [];
-    $lookupTimes = [];
-    
-    for ($run = 1; $run <= $runsPerTest; $run++) {
-        clearTestData($db);
-        $testData = loadSeedData($size, $run);
-        $phones = [];
-        $vipService = new VIPService($db);
-        
-        $startTime = microtime(true);
-        foreach ($testData as $data) {
-            $phones[] = $data['phone'];
-            // Create VIP customer record
-            $stmt = $db->prepare("INSERT INTO vip_customers (phone, name, vip_level, total_bookings, total_spent) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE total_bookings = total_bookings + 1");
-            $stmt->execute([$data['phone'], $data['name'], 'bronze', 1, 0]);
-        }
-        $createTime = (microtime(true) - $startTime) * 1000;
-        $createTimes[] = $createTime;
-        
-        $startTime = microtime(true);
-        foreach ($phones as $phone) {
-            $vipService->getVIPCustomer($phone);
-        }
-        $lookupTime = (microtime(true) - $startTime) * 1000;
-        $lookupTimes[] = $lookupTime;
-        
-        echo '<tr>';
-        echo '<td>' . $size . '</td>';
-        echo '<td><span class="run-number">Run ' . $run . '</span></td>';
-        echo '<td class="time-value">' . number_format($createTime, 2) . ' ms</td>';
-        echo '<td class="time-value">' . number_format($lookupTime, 2) . ' ms</td>';
-        echo '<td class="status-success">✓ Success</td>';
-        echo '</tr>';
-    }
-    
-    echo '<tr class="average-row">';
-    echo '<td>' . $size . '</td>';
-    echo '<td><strong>AVERAGE</strong></td>';
-    echo '<td class="time-value">' . number_format(array_sum($createTimes) / count($createTimes), 2) . ' ms</td>';
-    echo '<td class="time-value">' . number_format(array_sum($lookupTimes) / count($lookupTimes), 2) . ' ms</td>';
-    echo '<td class="status-success">✓ Completed</td>';
-    echo '</tr>';
-}
-
-echo '</tbody></table>';
-echo '</div>';
-
-// ============================================================================
-// TEST 5: HASH-BASED CODE GENERATION
-// ============================================================================
-
-echo '<div class="test-section">';
-echo '<h2>Test 5: Hash-Based Code Generation <span class="complexity">O(1)</span></h2>';
+echo '<h2>Test 3: Hash-Based Code Generation <span class="complexity">O(1)</span></h2>';
 echo '<div class="test-info">';
 echo '<p><strong>Algorithm:</strong> MD5 Hash + Uniqueness Check</p>';
 echo '<p><strong>Operations:</strong> Generate unique confirmation codes</p>';
@@ -685,11 +563,11 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// TEST 6: LINEAR SEARCH & FILTERING
+// Test 4: LINEAR SEARCH & FILTERING
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 6: Linear Search & Filtering <span class="complexity">O(n×m)</span></h2>';
+echo '<h2>Test 4: Linear Search & Filtering <span class="complexity">O(n×m)</span></h2>';
 echo '<div class="test-info">';
 echo '<p><strong>Algorithm:</strong> Sequential scan with pattern matching</p>';
 echo '<p><strong>Operations:</strong> Search reservations by name pattern</p>';
@@ -744,11 +622,11 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// TEST 7: TIME SLOT AVAILABILITY MATRIX
+// Test 5: TIME SLOT AVAILABILITY MATRIX
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 7: Time Slot Availability Matrix <span class="complexity">O((t+r)×s)</span></h2>';
+echo '<h2>Test 5: Time Slot Availability Matrix <span class="complexity">O((t+r)×s)</span></h2>';
 echo '<div class="test-info">';
 echo '<p><strong>Algorithm:</strong> 2D associative array for table-time availability</p>';
 echo '<p><strong>Operations:</strong> Check availability across all tables and time slots</p>';
@@ -825,11 +703,11 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// TEST 8: SESSION-BASED HOLD SYSTEM
+// Test 6: SESSION-BASED HOLD SYSTEM
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 8: Session-Based Hold System <span class="complexity">O(1)</span></h2>';
+echo '<h2>Test 6: Session-Based Hold System <span class="complexity">O(1)</span></h2>';
 echo '<div class="test-info">';
 echo '<p><strong>Algorithm:</strong> Session storage with timestamp expiration</p>';
 echo '<p><strong>Operations:</strong> Create hold + Check expiration + Release hold</p>';
@@ -902,11 +780,11 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// TEST 9: DATABASE SORTING (ORDER BY)
+// Test 7: DATABASE SORTING (ORDER BY)
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 9: Database Sorting (ORDER BY) <span class="complexity">O(n log n)</span></h2>';
+echo '<h2>Test 7: Database Sorting (ORDER BY) <span class="complexity">O(n log n)</span></h2>';
 echo '<div class="test-info">';
 echo '<p><strong>Algorithm:</strong> MySQL QuickSort/MergeSort hybrid with B-tree indexes</p>';
 echo '<p><strong>Operations:</strong> Sort reservations by priority score</p>';
@@ -960,11 +838,11 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// TEST 10: SINGLETON PATTERN (DATABASE CONNECTION)
+// Test 8: SINGLETON PATTERN (DATABASE CONNECTION)
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 10: Singleton Pattern (DB Connection) <span class="complexity">O(1)</span></h2>';
+echo '<h2>Test 8: Singleton Pattern (DB Connection) <span class="complexity">O(1)</span></h2>';
 echo '<div class="test-info">';
 echo '<p><strong>Algorithm:</strong> Single instance pattern with lazy initialization</p>';
 echo '<p><strong>Operations:</strong> Multiple connection requests return same instance</p>';
@@ -1018,11 +896,11 @@ echo '</div>';
 clearTestData($db);
 
 echo '<div class="summary-box">';
-echo '<h3>✅ All 10 Algorithm Tests Completed Successfully</h3>';
+echo '<h3>✅ All 8 Algorithm Tests Completed Successfully</h3>';
 echo '<p>Comprehensive performance testing across multiple dataset sizes</p>';
 echo '<div class="summary-stats">';
 echo '<div class="stat-card"><h4>Total Tests Run</h4><p>' . (count($testSizes) * $runsPerTest * 10) . '</p></div>';
-echo '<div class="stat-card"><h4>Algorithms Tested</h4><p>10</p></div>';
+echo '<div class="stat-card"><h4>Algorithms Tested</h4><p>8</p></div>';
 echo '<div class="stat-card"><h4>Test Sizes</h4><p>100, 500, 1000</p></div>';
 echo '<div class="stat-card"><h4>Runs Per Test</h4><p>' . $runsPerTest . '</p></div>';
 echo '</div>';
@@ -1033,6 +911,9 @@ echo '</div>';
     </div>
 </body>
 </html>
+
+
+
 
 
 
