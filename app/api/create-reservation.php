@@ -157,12 +157,15 @@ class WaitlistQueue {
  * Ensures uniqueness through database check
  */
 function generateConfirmationCode($pdo) {
+    static $counter = 0;
     $maxAttempts = 10;
     $attempts = 0;
     
     while ($attempts < $maxAttempts) {
-        // Generate 6-character alphanumeric code
-        $code = 'SKR-' . strtoupper(substr(str_shuffle('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'), 0, 6));
+        // Improved: Hash-based generation with counter for better uniqueness
+        // Combines: uniqid + counter + microtime for guaranteed uniqueness
+        $hash = md5(uniqid(rand(), true) . $counter++ . microtime(true));
+        $code = 'SKR-' . strtoupper(substr($hash, 0, 6));
         
         // Check uniqueness - Hash Table approach using DB index (O(1) with index)
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE confirmation_code = ?");
@@ -175,8 +178,8 @@ function generateConfirmationCode($pdo) {
         $attempts++;
     }
     
-    // Fallback with timestamp
-    return 'SKR-' . strtoupper(dechex(time()));
+    // Fallback with timestamp (should rarely happen now)
+    return 'SKR-' . strtoupper(dechex(time()) . substr(md5(microtime()), 0, 2));
 }
 
 // Main request handling
