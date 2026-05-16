@@ -54,6 +54,9 @@ if (!$db) {
 $testSizes = [100, 500, 1000];
 $runsPerTest = 5;
 
+// Global counter for unique code generation
+$globalCodeCounter = 0;
+
 // Clean up any existing test data before starting
 clearTestData($db);
 echo "<!-- Cleaned up existing test data -->\n";
@@ -93,6 +96,8 @@ function clearTestData($db) {
     // SAFE: Only deletes seed data phones (099xxxxx) and test-specific patterns
     // Will NOT delete real customer data like 09855379443
     $db->exec("DELETE FROM reservations WHERE phone LIKE '099%'");
+    $db->exec("DELETE FROM reservations WHERE confirmation_code LIKE 'TEST%'");
+    $db->exec("DELETE FROM reservations WHERE confirmation_code LIKE 'CART%'");
     $db->exec("DELETE FROM vip_customers WHERE phone LIKE '099%'");
 }
 
@@ -376,10 +381,9 @@ foreach ($testSizes as $size) {
         $confirmationCodes = [];
         
         $startTime = microtime(true);
-        $codeCounter = 0;
-        foreach ($testData as $data) {
-            // Generate unique confirmation code to avoid duplicates
-            $code = strtoupper(substr(md5(uniqid(rand(), true) . $codeCounter++ . microtime(true)), 0, 8));
+        foreach ($testData as $idx => $data) {
+            // Simple guaranteed-unique code: TEST prefix + global counter
+            $code = 'TEST' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
             $confirmationCodes[] = $code;
             $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, special_requests, confirmation_code, status, priority_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
@@ -390,7 +394,7 @@ foreach ($testSizes as $size) {
                 $data['reservation_date'], 
                 $data['reservation_time'], 
                 $data['special_requests'] ?? '', 
-                $code,  // Use newly generated code
+                $code,
                 $data['status'] ?? 'pending',
                 $data['priority_score'] ?? 5000
             ]);
@@ -407,12 +411,15 @@ foreach ($testSizes as $size) {
         $lookupTime = (microtime(true) - $startTime) * 1000;
         $lookupTimes[] = $lookupTime;
         
+        // Clean up test data immediately after this run
+        clearTestData($db);
+        
         echo '<tr>';
         echo '<td>' . $size . '</td>';
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($insertTime, 2) . ' ms</td>';
         echo '<td class="time-value">' . number_format($lookupTime, 2) . ' ms</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -424,7 +431,7 @@ foreach ($testSizes as $size) {
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format($avgInsert, 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format($avgLookup, 2) . ' ms</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -459,8 +466,8 @@ foreach ($testSizes as $size) {
         
         // Test Add
         $startTime = microtime(true);
-        foreach ($testData as $data) {
-            $code = 'CART' . uniqid() . rand(1000, 9999);
+        foreach ($testData as $idx => $data) {
+            $code = 'CART' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
             $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, confirmation_code, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
             $stmt->execute([$data['name'], $data['phone'], $data['people_count'], $data['table_id'], $data['reservation_date'], $data['reservation_time'], $code]);
         }
@@ -490,13 +497,16 @@ foreach ($testSizes as $size) {
         $removeTime = (microtime(true) - $startTime) * 1000;
         $removeTimes[] = $removeTime;
         
+        // Clean up any remaining test data
+        clearTestData($db);
+        
         echo '<tr>';
         echo '<td>' . $size . '</td>';
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($addTime, 2) . ' ms</td>';
         echo '<td class="time-value">' . number_format($removeTime, 2) . ' ms</td>';
         echo '<td class="time-value">' . number_format($updateTime, 2) . ' ms</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -506,7 +516,7 @@ foreach ($testSizes as $size) {
     echo '<td class="time-value">' . number_format(array_sum($addTimes) / count($addTimes), 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format(array_sum($removeTimes) / count($removeTimes), 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format(array_sum($updateTimes) / count($updateTimes), 2) . ' ms</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -536,9 +546,8 @@ foreach ($testSizes as $size) {
         $codes = [];
         
         $startTime = microtime(true);
-        $codeCounter = 0;
         for ($i = 0; $i < $size; $i++) {
-            $code = strtoupper(substr(md5(uniqid(rand(), true) . $codeCounter++ . microtime(true)), 0, 8));
+            $code = 'TEST' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
             $codes[] = $code;
         }
         $genTime = (microtime(true) - $startTime) * 1000;
@@ -552,7 +561,7 @@ foreach ($testSizes as $size) {
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($genTime, 2) . ' ms</td>';
         echo '<td>' . $unique . ' unique</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -561,7 +570,7 @@ foreach ($testSizes as $size) {
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format(array_sum($genTimes) / count($genTimes), 2) . ' ms</td>';
     echo '<td>' . $size . ' codes</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -590,10 +599,9 @@ foreach ($testSizes as $size) {
     for ($run = 1; $run <= $runsPerTest; $run++) {
         clearTestData($db);
         $testData = loadSeedData($size, $run);
-        $codeCounter = 0;
         
-        foreach ($testData as $data) {
-            $code = strtoupper(substr(md5(uniqid(rand(), true) . $codeCounter++ . microtime(true)), 0, 8));
+        foreach ($testData as $idx => $data) {
+            $code = 'TEST' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
             $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, special_requests, confirmation_code, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
             $stmt->execute([$data['name'], $data['phone'], $data['people_count'], $data['table_id'], $data['reservation_date'], $data['reservation_time'], $data['special_requests'] ?? '', $code]);
         }
@@ -606,12 +614,15 @@ foreach ($testSizes as $size) {
         $searchTime = (microtime(true) - $startTime) * 1000;
         $searchTimes[] = $searchTime;
         
+        // Clean up test data
+        clearTestData($db);
+        
         echo '<tr>';
         echo '<td>' . $size . '</td>';
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($searchTime, 2) . ' ms</td>';
         echo '<td>' . count($results) . '</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -620,7 +631,7 @@ foreach ($testSizes as $size) {
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format(array_sum($searchTimes) / count($searchTimes), 2) . ' ms</td>';
     echo '<td>~' . round($size * 0.1) . '</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -650,10 +661,9 @@ foreach ($testSizes as $size) {
     for ($run = 1; $run <= $runsPerTest; $run++) {
         clearTestData($db);
         $testData = loadSeedData($size, $run);
-        $codeCounter = 0;
         
-        foreach ($testData as $data) {
-            $code = strtoupper(substr(md5(uniqid(rand(), true) . $codeCounter++ . microtime(true)), 0, 8));
+        foreach ($testData as $idx => $data) {
+            $code = 'TEST' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
             $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, confirmation_code, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'confirmed')");
             $stmt->execute([$data['name'], $data['phone'], $data['people_count'], $data['table_id'], $data['reservation_date'], $data['reservation_time'], $code]);
         }
@@ -687,12 +697,15 @@ foreach ($testSizes as $size) {
         $checkTime = (microtime(true) - $startTime) * 1000;
         $checkTimes[] = $checkTime;
         
+        // Clean up test data
+        clearTestData($db);
+        
         echo '<tr>';
         echo '<td>' . $size . '</td>';
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($buildTime, 2) . ' ms</td>';
         echo '<td class="time-value">' . number_format($checkTime, 2) . ' ms</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -701,7 +714,7 @@ foreach ($testSizes as $size) {
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format(array_sum($buildTimes) / count($buildTimes), 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format(array_sum($checkTimes) / count($checkTimes), 2) . ' ms</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -768,7 +781,7 @@ foreach ($testSizes as $size) {
         echo '<td class="time-value">' . number_format($createTime, 2) . ' ms</td>';
         echo '<td class="time-value">' . number_format($checkTime, 2) . ' ms</td>';
         echo '<td class="time-value">' . number_format($releaseTime, 2) . ' ms</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -778,7 +791,7 @@ foreach ($testSizes as $size) {
     echo '<td class="time-value">' . number_format(array_sum($createTimes) / count($createTimes), 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format(array_sum($checkTimes) / count($checkTimes), 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format(array_sum($releaseTimes) / count($releaseTimes), 2) . ' ms</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -807,10 +820,9 @@ foreach ($testSizes as $size) {
     for ($run = 1; $run <= $runsPerTest; $run++) {
         clearTestData($db);
         $testData = loadSeedData($size, $run);
-        $codeCounter = 0;
         
-        foreach ($testData as $data) {
-            $code = strtoupper(substr(md5(uniqid(rand(), true) . $codeCounter++ . microtime(true)), 0, 8));
+        foreach ($testData as $idx => $data) {
+            $code = 'TEST' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
             $priority = $data['priority_score'] ?? rand(1000, 5000);
             $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, special_requests, confirmation_code, priority_score, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
             $stmt->execute([$data['name'], $data['phone'], $data['people_count'], $data['table_id'], $data['reservation_date'], $data['reservation_time'], $data['special_requests'] ?? '', $code, $priority]);
@@ -822,12 +834,15 @@ foreach ($testSizes as $size) {
         $sortTime = (microtime(true) - $startTime) * 1000;
         $sortTimes[] = $sortTime;
         
+        // Clean up test data
+        clearTestData($db);
+        
         echo '<tr>';
         echo '<td>' . $size . '</td>';
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($sortTime, 2) . ' ms</td>';
         echo '<td>' . count($sorted) . '</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -836,7 +851,7 @@ foreach ($testSizes as $size) {
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format(array_sum($sortTimes) / count($sortTimes), 2) . ' ms</td>';
     echo '<td>' . $size . '</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -879,7 +894,7 @@ foreach ($testSizes as $size) {
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($connTime, 2) . ' ms</td>';
         echo '<td>' . $uniqueInstances . ' (should be 1)</td>';
-        echo '<td class="status-success">✓ Success</td>';
+        echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
@@ -888,7 +903,7 @@ foreach ($testSizes as $size) {
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format(array_sum($connTimes) / count($connTimes), 2) . ' ms</td>';
     echo '<td>1 instance</td>';
-    echo '<td class="status-success">✓ Completed</td>';
+    echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
@@ -902,7 +917,7 @@ echo '</div>';
 clearTestData($db);
 
 echo '<div class="summary-box">';
-echo '<h3>✅ All 8 Algorithm Tests Completed Successfully</h3>';
+echo '<h3>All 8 Algorithm Tests Completed Successfully</h3>';
 echo '<p>Comprehensive performance testing across multiple dataset sizes</p>';
 echo '<div class="summary-stats">';
 echo '<div class="stat-card"><h4>Total Tests Run</h4><p>' . (count($testSizes) * $runsPerTest * 10) . '</p></div>';
