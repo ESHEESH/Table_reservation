@@ -90,8 +90,10 @@ function loadSeedData($size, $run) {
 
 function clearTestData($db) {
     // Clear test data by phone pattern or all test records
-    $db->exec("DELETE FROM reservations WHERE phone LIKE '096%' OR phone LIKE '097%' OR phone LIKE '098%' OR phone LIKE '099%'");
-    $db->exec("DELETE FROM vip_customers WHERE phone LIKE '096%' OR phone LIKE '097%' OR phone LIKE '098%' OR phone LIKE '099%'");
+    // SAFE: Only deletes seed data phones (099xxxxx) and test-specific patterns
+    // Will NOT delete real customer data like 09855379443
+    $db->exec("DELETE FROM reservations WHERE phone LIKE '099%'");
+    $db->exec("DELETE FROM vip_customers WHERE phone LIKE '099%'");
 }
 
 ?>
