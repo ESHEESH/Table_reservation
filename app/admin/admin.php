@@ -133,6 +133,76 @@ if ($loggedIn && $_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['action'
         header('Location: admin.php?tab=reservations&flash=1'); 
         exit;
     }
+    
+    // Seed data upload handler
+    if ($_POST['action'] === 'seed_reservations') {
+        if (isset($_FILES['seed_file']) && $_FILES['seed_file']['error'] === UPLOAD_ERR_OK) {
+            $fileContent = file_get_contents($_FILES['seed_file']['tmp_name']);
+            $seedData = json_decode($fileContent, true);
+            
+            if (json_last_error() === JSON_ERROR_NONE && isset($seedData['reservations'])) {
+                $inserted = 0;
+                $errors = [];
+                
+                require_once '../classes/VIPService.php';
+                $vipService = new VIPService($pdo);
+                
+                foreach ($seedData['reservations'] as $res) {
+                    try {
+                        // Generate confirmation code
+                        $code = 'SKR-' . strtoupper(substr(md5(uniqid()), 0, 6));
+                        
+                        // Calculate priority score
+                        $timestamp = time();
+                        $priorityScore = $vipService->calculatePriorityScore($res['phone'], $timestamp);
+                        
+                        // Insert reservation
+                        $stmt = $pdo->prepare("
+                            INSERT INTO reservations 
+                            (name, phone, people_count, table_id, confirmation_code, 
+                             reservation_date, reservation_time, special_requests, 
+                             status, total_amount, priority_score, booking_timestamp)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ");
+                        
+                        $stmt->execute([
+                            $res['name'],
+                            $res['phone'],
+                            $res['people_count'],
+                            $res['table_id'] ?? null,
+                            $code,
+                            $res['reservation_date'],
+                            $res['reservation_time'],
+                            $res['special_requests'] ?? '',
+                            $res['status'] ?? 'pending',
+                            $res['total_amount'] ?? 0,
+                            $priorityScore,
+                            $timestamp
+                        ]);
+                        
+                        $inserted++;
+                    } catch (Exception $e) {
+                        $errors[] = "Error inserting {$res['name']}: " . $e->getMessage();
+                    }
+                }
+                
+                $message = "$inserted reservations inserted successfully.";
+                if (!empty($errors)) {
+                    $message .= " Errors: " . implode(', ', array_slice($errors, 0, 3));
+                }
+                
+                header('Location: admin.php?tab=reservations&seed_success=' . urlencode($message));
+                exit;
+            } else {
+                header('Location: admin.php?tab=reservations&seed_error=Invalid JSON format');
+                exit;
+            }
+        } else {
+            header('Location: admin.php?tab=reservations&seed_error=File upload failed');
+            exit;
+        }
+    }
+    
     if ($_POST['action'] === 'update_table_status') {
         $tid = (int)$_POST['table_id'];
         $ts  = in_array($_POST['status'], ['available','reserved','occupied']) ? $_POST['status'] : 'available';
@@ -205,9 +275,18 @@ if ($loggedIn) {
     $tablesAll  = $pdo->query("SELECT * FROM tables ORDER BY table_number")->fetchAll();
     $menuItems  = $pdo->query("SELECT * FROM menu_items ORDER BY category, name")->fetchAll();
     $search     = trim($_GET['search'] ?? '');
-    $allRes     = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id ORDER BY r.priority_score ASC, r.booking_timestamp ASC")->fetchAll();
+    
+    // Active reservations (pending and confirmed only)
+    $allRes     = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id WHERE r.status IN ('pending', 'confirmed') ORDER BY r.priority_score ASC, r.booking_timestamp ASC")->fetchAll();
+    
+    // History (cancelled and old confirmed reservations)
+    $historyRes = $pdo->query("SELECT r.*, t.table_number, t.capacity, t.price as table_price, (SELECT COUNT(*) FROM pre_orders WHERE reservation_id=r.id) as po_count FROM reservations r LEFT JOIN tables t ON r.table_id=t.id WHERE r.status = 'cancelled' OR (r.status = 'confirmed' AND r.reservation_date < CURDATE()) ORDER BY r.created_at DESC")->fetchAll();
+    
     if ($search !== '') {
         $allRes = array_values(array_filter($allRes, fn($r) =>
+            stripos($r['name'],$search)!==false || stripos($r['phone'],$search)!==false || stripos($r['confirmation_code'],$search)!==false
+        ));
+        $historyRes = array_values(array_filter($historyRes, fn($r) =>
             stripos($r['name'],$search)!==false || stripos($r['phone'],$search)!==false || stripos($r['confirmation_code'],$search)!==false
         ));
     }
@@ -482,6 +561,10 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       Reservations
       <?php if ($pending > 0): ?><span class="nav-badge"><?= $pending ?></span><?php endif; ?>
     </a>
+    <a href="admin.php?tab=history" class="nav-item <?= $activeTab==='history'?'active':'' ?>">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      History
+    </a>
     <a href="admin.php?tab=tables" class="nav-item <?= $activeTab==='tables'?'active':'' ?>">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="3" rx="1"/><path d="M6 9v9M18 9v9M4 18h16"/></svg>
       Tables
@@ -643,9 +726,30 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       <button class="chip active" onclick="setFilter('all',this)">All</button>
       <button class="chip c-pending" onclick="setFilter('pending',this)">Pending</button>
       <button class="chip c-confirmed" onclick="setFilter('confirmed',this)">Confirmed</button>
-      <button class="chip c-cancelled" onclick="setFilter('cancelled',this)">Cancelled</button>
     </div>
+    <button class="act-btn" onclick="document.getElementById('seedFileInput').click()" style="margin-left:auto;border-color:var(--gold);color:var(--gold);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      Seed Data
+    </button>
+    <form id="seedForm" method="POST" enctype="multipart/form-data" style="display:none;">
+      <input type="hidden" name="action" value="seed_reservations">
+      <input type="file" id="seedFileInput" name="seed_file" accept=".json" onchange="document.getElementById('seedForm').submit()">
+    </form>
   </div>
+  <?php if (isset($_GET['seed_success'])): ?>
+  <div style="background:rgba(61,153,112,.1);border:1px solid rgba(61,153,112,.3);border-radius:8px;color:var(--green);padding:12px 16px;margin:12px;font-size:.85rem;">
+    ✓ <?= htmlspecialchars($_GET['seed_success']) ?>
+  </div>
+  <?php endif; ?>
+  <?php if (isset($_GET['seed_error'])): ?>
+  <div style="background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.3);border-radius:8px;color:var(--red);padding:12px 16px;margin:12px;font-size:.85rem;">
+    ✗ <?= htmlspecialchars($_GET['seed_error']) ?>
+  </div>
+  <?php endif; ?>
   <div style="overflow-x:auto;">
   <table class="data-table" id="resTable">
     <thead><tr><th>Code</th><th>Customer</th><th>Table</th><th>Date &amp; Time</th><th>Guests</th><th>Fee</th><th>Pre-order</th><th>Receipt</th><th>Status</th><th>Actions</th></tr></thead>
@@ -692,6 +796,55 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       </td>
     </tr>
     <?php endforeach; if (empty($allRes)): ?><tr><td colspan="10" class="empty-state">No reservations found.</td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  </div>
+</div>
+<?php endif; ?>
+
+<?php if ($activeTab === 'history'): ?>
+<div class="section-head"><span class="section-title">Booking History</span></div>
+<div class="data-wrap">
+  <div class="data-toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="searchInputHistory" placeholder="Search name, code, phone..." oninput="filterHistoryTable()">
+    </div>
+    <div style="font-size:.75rem;color:var(--muted);margin-left:auto;">
+      Showing cancelled and past reservations
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+  <table class="data-table" id="historyTable">
+    <thead><tr><th>Code</th><th>Customer</th><th>Table</th><th>Date &amp; Time</th><th>Guests</th><th>Fee</th><th>Pre-order</th><th>Receipt</th><th>Status</th><th>Reason</th></tr></thead>
+    <tbody id="historyBody">
+    <?php foreach ($historyRes as $r): ?>
+    <tr data-search="<?= strtolower(htmlspecialchars($r['name'].$r['phone'].$r['confirmation_code'])) ?>">
+      <td><span class="code-cell"><?= htmlspecialchars($r['confirmation_code']) ?></span></td>
+      <td><div class="name-cell"><?= htmlspecialchars($r['name']) ?></div><div class="phone-cell"><?= htmlspecialchars($r['phone']) ?></div></td>
+      <td><?= htmlspecialchars($r['table_number'] ?? '—') ?></td>
+      <td><div class="date-cell"><?= date('M j, Y', strtotime($r['reservation_date'])) ?></div><div class="date-sub"><?= date('g:i A', strtotime($r['reservation_time'])) ?></div></td>
+      <td style="text-align:center;"><?= $r['people_count'] ?></td>
+      <td>&#8369;<?= number_format($r['table_price'] ?? 0, 2) ?></td>
+      <td><?= $r['po_count'] > 0 ? '<span class="preorder-tag">'.$r['po_count'].' items</span>' : '<span style="color:var(--muted2);">—</span>' ?></td>
+      <td><?php if ($r['payment_receipt']): ?>
+        <button class="act-btn" onclick="viewReceipt('../<?= htmlspecialchars($r['payment_receipt']) ?>')" title="View Receipt">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+      <?php else: ?><span style="color:var(--muted2);">—</span><?php endif; ?></td>
+      <td><span class="pill pill-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
+      <td style="font-size:.72rem;color:var(--muted);">
+        <?php if ($r['status'] === 'cancelled'): ?>
+          Cancelled
+        <?php else: ?>
+          Completed
+        <?php endif; ?>
+      </td>
+    </tr>
+    <?php endforeach; if (empty($historyRes)): ?><tr><td colspan="10" class="empty-state">No history found.</td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>
@@ -979,6 +1132,13 @@ function filterTable() {
     const matchStatus = currentFilter === 'all' || row.dataset.status === currentFilter;
     const matchSearch = !q || row.dataset.search.includes(q);
     row.style.display = matchStatus && matchSearch ? '' : 'none';
+  });
+}
+function filterHistoryTable() {
+  const q = (document.getElementById('searchInputHistory')?.value || '').toLowerCase();
+  document.querySelectorAll('#historyBody tr[data-search]').forEach(row => {
+    const matchSearch = !q || row.dataset.search.includes(q);
+    row.style.display = matchSearch ? '' : 'none';
   });
 }
 function editMenu(id, name, desc, price, cat, img, stock, available) {

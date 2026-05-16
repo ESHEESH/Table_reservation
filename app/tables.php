@@ -8,7 +8,7 @@
  * 
  * OVERVIEW:
  * - Displays table availability in calendar grid format
- * - Shows 2.5-hour time slots (7 PM - 11 PM operating hours)
+ * - Shows 3-hour time slots (2 PM - 11 PM operating hours)
  * - Real-time availability checking with conflict detection
  * - Color-coded status: Available (green), Booked (red), Pending (yellow)
  * 
@@ -32,9 +32,11 @@
  * - Lookup availability: O(1)
  * 
  * TIME SLOTS:
- * - Slot 1: 7:00 PM - 9:30 PM (2.5 hours)
- * - Slot 2: 8:30 PM - 11:00 PM (2.5 hours)
- * - Overlap: 8:30 PM - 9:30 PM (1 hour)
+ * - 3 sessions per day, 3 hours each, no overlap
+ * - Slot 1: 2:00 PM - 5:00 PM (Lunch/Afternoon)
+ * - Slot 2: 5:00 PM - 8:00 PM (Early Dinner)
+ * - Slot 3: 8:00 PM - 11:00 PM (Late Dinner)
+ * - Each table can be booked 3 times per day
  * 
  * OPTIMIZATION:
  * - Database query filtered by date (indexed)
@@ -61,10 +63,11 @@ if ($selectedDate < $today || $selectedDate > $maxDate) {
 $stmt = $pdo->query("SELECT * FROM tables ORDER BY table_number");
 $tables = $stmt->fetchAll();
 
-// Time slots (2.5 hours each, operating 7 PM - 11 PM)
+// Time slots (3 hours each, operating 2 PM - 11 PM)
 $timeSlots = [
-    ['start' => '19:00:00', 'end' => '21:30:00', 'label' => '7:00 PM - 9:30 PM'],
-    ['start' => '20:30:00', 'end' => '23:00:00', 'label' => '8:30 PM - 11:00 PM']
+    ['start' => '14:00:00', 'end' => '17:00:00', 'label' => '2:00 PM - 5:00 PM'],
+    ['start' => '17:00:00', 'end' => '20:00:00', 'label' => '5:00 PM - 8:00 PM'],
+    ['start' => '20:00:00', 'end' => '23:00:00', 'label' => '8:00 PM - 11:00 PM']
 ];
 
 // Get all reservations for selected date
@@ -466,7 +469,7 @@ foreach ($reservations as $res) {
                         <tr>
                             <td>
                                 <div class="time-label"><?php echo $slot['label']; ?></div>
-                                <span class="price-label">2.5 hours</span>
+                                <span class="price-label">3 hours</span>
                             </td>
                             <?php foreach ($tables as $table): ?>
                                 <td>

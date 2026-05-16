@@ -23,12 +23,18 @@
  *    - Collision detection via database uniqueness check
  *    - O(1) validation with indexed column
  * 
+ * 4. TABLE HOLD SYSTEM
+ *    - 5-minute temporary lock on table during form fill
+ *    - Prevents double booking and bot abuse
+ *    - Auto-expires if form not submitted
+ * 
  * OVERVIEW:
  * - Handles reservation form submission
  * - Validates customer details and table availability
  * - Manages file upload for payment receipts
  * - Integrates with Priority Queue for waitlist
  * - Calculates priority scores for VIP/early bookers
+ * - Releases table hold on successful submission
  * 
  * PRIORITY CALCULATION:
  * - VIP Platinum: priority = 1000
@@ -48,6 +54,8 @@
  * - Required fields: name, phone, people_count, date, time
  * - Phone format: 10+ digits with optional formatting
  * - Date range: Today to +30 days
+
+session_start(); // Start session to access hold data
  * - People count: 1-10 guests
  * - Table capacity check
  * - Payment receipt: JPG, PNG, PDF (max 5MB)
@@ -149,12 +157,15 @@ class WaitlistQueue {
  * Ensures uniqueness through database check
  */
 function generateConfirmationCode($pdo) {
+    static $counter = 0;
     $maxAttempts = 10;
     $attempts = 0;
     
     while ($attempts < $maxAttempts) {
-        // Generate 6-character alphanumeric code
-        $code = 'SKR-' . strtoupper(substr(str_shuffle('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'), 0, 6));
+        // Improved: Hash-based generation with counter for better uniqueness
+        // Combines: uniqid + counter + microtime for guaranteed uniqueness
+        $hash = md5(uniqid(rand(), true) . $counter++ . microtime(true));
+        $code = 'SKR-' . strtoupper(substr($hash, 0, 6));
         
         // Check uniqueness - Hash Table approach using DB index (O(1) with index)
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE confirmation_code = ?");
@@ -167,8 +178,8 @@ function generateConfirmationCode($pdo) {
         $attempts++;
     }
     
-    // Fallback with timestamp
-    return 'SKR-' . strtoupper(dechex(time()));
+    // Fallback with timestamp (should rarely happen now)
+    return 'SKR-' . strtoupper(dechex(time()) . substr(md5(microtime()), 0, 2));
 }
 
 // Main request handling
@@ -381,6 +392,18 @@ try {
     //     $stmt = $pdo->prepare("UPDATE tables SET status = 'reserved' WHERE id = ?");
     //     $stmt->execute([$tableId]);
     // }
+    
+    // Release table hold after successful reservation
+    if (isset($_SESSION['current_hold'])) {
+        $hold = $_SESSION['current_hold'];
+        $holdKey = $hold['table_id'] . '_' . $hold['date'] . '_' . $hold['time'];
+        
+        if (isset($_SESSION['table_holds'][session_id()][$holdKey])) {
+            unset($_SESSION['table_holds'][session_id()][$holdKey]);
+        }
+        
+        unset($_SESSION['current_hold']);
+    }
     
     // Success response
     echo json_encode([
