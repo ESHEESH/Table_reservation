@@ -54,6 +54,10 @@ if (!$db) {
 $testSizes = [100, 500, 1000];
 $runsPerTest = 5;
 
+// Clean up any existing test data before starting
+clearTestData($db);
+echo "<!-- Cleaned up existing test data -->\n";
+
 // Test if seed files exist
 echo "<!-- Checking seed files... -->\n";
 foreach ($testSizes as $size) {
