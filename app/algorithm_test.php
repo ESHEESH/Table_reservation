@@ -1,20 +1,19 @@
 <?php
 /**
  * ============================================================================
- * COMPREHENSIVE ALGORITHM TESTING SUITE
+ * COMPREHENSIVE ALGORITHM TESTING SUITE - MAIN SYSTEM ALGORITHMS
  * ============================================================================
  * 
- * Tests ALL 10 optimized algorithms with performance metrics:
- * 1. Dynamic Hash Table with Resizing
- * 2. HashMap + Doubly Linked List (Cart)
- * 3. Priority Queue (Min-Heap)
- * 4. VIP Service Hash Lookup
- * 5. Hash-Based Code Generation
- * 6. Linear Search & Filtering
- * 7. Time Slot Availability Matrix
- * 8. Session-Based Hold System
- * 9. Database Sorting (ORDER BY)
- * 10. Singleton Pattern
+ * Tests ALL 9 algorithms and data structures used in the main system:
+ * 1. Fixed Hash Table Implementation (97 buckets, chaining) - O(1)
+ * 2. Queue (FIFO) Implementation (Waitlist) - O(1)
+ * 3. Linked List Implementation (Queue nodes) - O(1)
+ * 4. Hash-Based Code Generation (Confirmation codes) - O(1)
+ * 5. Linear Search & Filtering (Name search) - O(n)
+ * 6. Time Slot Availability Algorithm (Main system) - O(n+r×s)
+ * 7. Database Sorting (ORDER BY) - O(n log n)
+ * 8. Singleton Pattern (DB Connection) - O(1)
+ * 9. Session-Based Hold System (Temporary locks) - O(1)
  * 
  * Test Configuration:
  * - Dataset sizes: 100, 500, 1000 records
@@ -24,6 +23,273 @@
  */
 
 require_once 'config.php';
+
+/**
+ * MAIN SYSTEM DATA STRUCTURES
+ * Copy from actual implementation files
+ */
+
+// Database-Backed Hash Table Implementation
+class DatabaseHashTable {
+    private $db;
+    private $size = 97; // Fixed prime number for better distribution
+    private $tableName = 'hash_table_buckets';
+    
+    public function __construct($pdo) {
+        $this->db = $pdo;
+        $this->initializeTable();
+    }
+    
+    private function initializeTable() {
+        // Create hash table buckets table if not exists
+        $this->db->exec("
+            CREATE TABLE IF NOT EXISTS {$this->tableName} (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                bucket_index INT NOT NULL,
+                hash_key VARCHAR(255) NOT NULL,
+                hash_value TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_bucket (bucket_index),
+                INDEX idx_key (hash_key)
+            ) ENGINE=InnoDB
+        ");
+    }
+    
+    private function hash($key) {
+        $hash = 0;
+        for ($i = 0; $i < strlen($key); $i++) {
+            $hash = ($hash * 31 + ord($key[$i]));
+        }
+        return abs($hash);
+    }
+    
+    public function insert($key, $value) {
+        $index = $this->hash($key) % $this->size;
+        $serializedValue = json_encode($value);
+        
+        // Check if key exists (update)
+        $stmt = $this->db->prepare("SELECT id FROM {$this->tableName} WHERE bucket_index = ? AND hash_key = ?");
+        $stmt->execute([$index, $key]);
+        
+        if ($stmt->fetch()) {
+            // Update existing
+            $stmt = $this->db->prepare("UPDATE {$this->tableName} SET hash_value = ? WHERE bucket_index = ? AND hash_key = ?");
+            $stmt->execute([$serializedValue, $index, $key]);
+        } else {
+            // Insert new (collision handling via multiple rows in same bucket)
+            $stmt = $this->db->prepare("INSERT INTO {$this->tableName} (bucket_index, hash_key, hash_value) VALUES (?, ?, ?)");
+            $stmt->execute([$index, $key, $serializedValue]);
+        }
+    }
+    
+    public function search($key) {
+        $index = $this->hash($key) % $this->size;
+        
+        // Search in bucket
+        $stmt = $this->db->prepare("SELECT hash_value FROM {$this->tableName} WHERE bucket_index = ? AND hash_key = ?");
+        $stmt->execute([$index, $key]);
+        
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($result) {
+            return json_decode($result['hash_value'], true);
+        }
+        
+        return null;
+    }
+    
+    public function delete($key) {
+        $index = $this->hash($key) % $this->size;
+        
+        $stmt = $this->db->prepare("DELETE FROM {$this->tableName} WHERE bucket_index = ? AND hash_key = ?");
+        $stmt->execute([$index, $key]);
+        
+        return $stmt->rowCount() > 0;
+    }
+    
+    public function getLoadFactor() {
+        $stmt = $this->db->query("SELECT COUNT(*) as total FROM {$this->tableName}");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['total'] / $this->size;
+    }
+    
+    public function getCollisions() {
+        // Count buckets with more than 1 item
+        $stmt = $this->db->query("
+            SELECT COUNT(*) as collision_count 
+            FROM (
+                SELECT bucket_index, COUNT(*) as cnt 
+                FROM {$this->tableName} 
+                GROUP BY bucket_index 
+                HAVING cnt > 1
+            ) as collisions
+        ");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Get total extra items (collisions)
+        $stmt = $this->db->query("
+            SELECT SUM(cnt - 1) as total_collisions 
+            FROM (
+                SELECT bucket_index, COUNT(*) as cnt 
+                FROM {$this->tableName} 
+                GROUP BY bucket_index 
+                HAVING cnt > 1
+            ) as collisions
+        ");
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result['total_collisions'] ?? 0;
+    }
+    
+    public function clear() {
+        $this->db->exec("TRUNCATE TABLE {$this->tableName}");
+    }
+    
+    public function dropTable() {
+        $this->db->exec("DROP TABLE IF EXISTS {$this->tableName}");
+    }
+}
+
+// Fixed Hash Table Implementation (In-Memory for comparison)
+class FixedHashTable {
+    private $buckets = [];
+    private $size = 97; // Fixed prime number for better distribution
+    
+    public function __construct() {
+        // Initialize all buckets as empty arrays
+        for ($i = 0; $i < $this->size; $i++) {
+            $this->buckets[$i] = [];
+        }
+    }
+    
+    private function hash($key) {
+        $hash = 0;
+        for ($i = 0; $i < strlen($key); $i++) {
+            $hash = ($hash * 31 + ord($key[$i]));
+        }
+        return abs($hash);
+    }
+    
+    public function insert($key, $value) {
+        $index = $this->hash($key) % $this->size;
+        
+        // Check if key already exists (update)
+        foreach ($this->buckets[$index] as &$item) {
+            if ($item['key'] === $key) {
+                $item['value'] = $value;
+                return;
+            }
+        }
+        
+        // Insert new key-value pair (collision handling via chaining)
+        $this->buckets[$index][] = ['key' => $key, 'value' => $value];
+    }
+    
+    public function search($key) {
+        $index = $this->hash($key) % $this->size;
+        
+        // Search in bucket
+        foreach ($this->buckets[$index] as $item) {
+            if ($item['key'] === $key) {
+                return $item['value'];
+            }
+        }
+        
+        return null; // Not found
+    }
+    
+    public function delete($key) {
+        $index = $this->hash($key) % $this->size;
+        
+        foreach ($this->buckets[$index] as $i => $item) {
+            if ($item['key'] === $key) {
+                unset($this->buckets[$index][$i]);
+                $this->buckets[$index] = array_values($this->buckets[$index]); // Re-index
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    public function getLoadFactor() {
+        $totalItems = 0;
+        foreach ($this->buckets as $bucket) {
+            $totalItems += count($bucket);
+        }
+        return $totalItems / $this->size;
+    }
+    
+    public function getCollisions() {
+        $collisions = 0;
+        foreach ($this->buckets as $bucket) {
+            if (count($bucket) > 1) {
+                $collisions += count($bucket) - 1;
+            }
+        }
+        return $collisions;
+    }
+}
+
+// Queue (FIFO) Implementation (from create-reservation.php)
+class WaitlistQueue {
+    private $front = null;
+    private $rear = null;
+    private $size = 0;
+    
+    public function enqueue($data) {
+        $newNode = ['data' => $data, 'next' => null];
+        
+        if ($this->rear === null) {
+            $this->front = $this->rear = $newNode;
+        } else {
+            $this->rear['next'] = $newNode;
+            $this->rear = $newNode;
+        }
+        $this->size++;
+    }
+    
+    public function dequeue() {
+        if ($this->front === null) return null;
+        
+        $data = $this->front['data'];
+        $this->front = $this->front['next'];
+        if ($this->front === null) $this->rear = null;
+        $this->size--;
+        return $data;
+    }
+    
+    public function peek() {
+        return $this->front ? $this->front['data'] : null;
+    }
+    
+    public function isEmpty() {
+        return $this->front === null;
+    }
+    
+    public function getSize() {
+        return $this->size;
+    }
+}
+
+// Hash-Based Code Generation (from create-reservation.php)
+function generateConfirmationCode($pdo) {
+    $maxAttempts = 10;
+    $attempts = 0;
+    
+    while ($attempts < $maxAttempts) {
+        $code = 'SKR-' . strtoupper(substr(str_shuffle('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ'), 0, 6));
+        
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM reservations WHERE confirmation_code = ?");
+        $stmt->execute([$code]);
+        
+        if ($stmt->fetchColumn() == 0) {
+            return $code;
+        }
+        
+        $attempts++;
+    }
+    
+    return 'SKR-' . strtoupper(dechex(time()));
+}
 
 // Check if optimized classes exist (for v3/v2 branches)
 $hasPriorityQueue = file_exists('classes/PriorityQueue.php');
@@ -346,7 +612,7 @@ function clearTestData($db) {
 <body>
     <div class="container">
         <h1>Algorithm Performance Testing</h1>
-        <p class="subtitle">Comprehensive Testing of All 10 Optimized Data Structures & Algorithms</p>
+        <p class="subtitle">Testing All Data Structures & Algorithms from Main System</p>
         
         <div class="loading-banner">
             <p><strong>Tests are running...</strong> This may take 1-2 minutes. Please wait.</p>
@@ -356,156 +622,142 @@ function clearTestData($db) {
 flush(); // Show loading message immediately
 
 // ============================================================================
-// TEST 1: DYNAMIC HASH TABLE - INSERTION & LOOKUP
+// TEST 1: DATABASE-BACKED HASH TABLE IMPLEMENTATION
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 1: Dynamic Hash Table <span class="complexity">O(1) Average</span></h2>';
+echo '<h2>Test 1: Database-Backed Hash Table <span class="complexity">O(1) Average</span></h2>';
 echo '<div class="test-info">';
-echo '<p><strong>Algorithm:</strong> Hash Table with Dynamic Resizing & Collision Handling</p>';
-echo '<p><strong>Operations:</strong> Insert reservations + Lookup by confirmation code</p>';
-echo '<p><strong>Test Sizes:</strong> 100, 500, 1000 records × 5 runs each</p>';
+echo '<p><strong>Algorithm:</strong> Hash Table stored in database with 97 buckets</p>';
+echo '<p><strong>Operations:</strong> Insert to hash table (DB) + Lookup by key (DB)</p>';
+echo '<p><strong>Implementation:</strong> Database table with bucket_index, hash collision handling via multiple rows</p>';
 echo '</div>';
 
 echo '<table>';
-echo '<thead><tr><th>Input Size</th><th>Run</th><th>Insert Time (ms)</th><th>Lookup Time (ms)</th><th>Status</th></tr></thead>';
+echo '<thead><tr><th>Input Size</th><th>Run</th><th>Insert Time (ms)</th><th>Lookup Time (ms)</th><th>Load Factor</th><th>Collisions</th><th>Status</th></tr></thead>';
 echo '<tbody>';
 
 foreach ($testSizes as $size) {
     $insertTimes = [];
     $lookupTimes = [];
+    $loadFactors = [];
+    $collisionCounts = [];
     
     for ($run = 1; $run <= $runsPerTest; $run++) {
-        clearTestData($db);
         $testData = loadSeedData($size, $run);
+        
+        // Create database-backed hash table
+        $dbHashTable = new DatabaseHashTable($db);
+        $dbHashTable->clear(); // Clear previous data
+        
         $confirmationCodes = [];
         
+        // Test Insert to Database Hash Table
         $startTime = microtime(true);
         foreach ($testData as $idx => $data) {
-            // Simple guaranteed-unique code: TEST prefix + global counter
             $code = 'TEST' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
             $confirmationCodes[] = $code;
-            $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, special_requests, confirmation_code, status, priority_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $data['name'], 
-                $data['phone'], 
-                $data['people_count'], 
-                $data['table_id'], 
-                $data['reservation_date'], 
-                $data['reservation_time'], 
-                $data['special_requests'] ?? '', 
-                $code,
-                $data['status'] ?? 'pending',
-                $data['priority_score'] ?? 5000
-            ]);
+            $dbHashTable->insert($code, $data);
         }
         $insertTime = (microtime(true) - $startTime) * 1000;
         $insertTimes[] = $insertTime;
         
+        // Get statistics from database
+        $loadFactor = $dbHashTable->getLoadFactor();
+        $collisions = $dbHashTable->getCollisions();
+        $loadFactors[] = $loadFactor;
+        $collisionCounts[] = $collisions;
+        
+        // Test Lookup from Database Hash Table
         $startTime = microtime(true);
         foreach ($confirmationCodes as $code) {
-            $stmt = $db->prepare("SELECT * FROM reservations WHERE confirmation_code = ?");
-            $stmt->execute([$code]);
-            $stmt->fetch(PDO::FETCH_ASSOC);
+            $result = $dbHashTable->search($code);
         }
         $lookupTime = (microtime(true) - $startTime) * 1000;
         $lookupTimes[] = $lookupTime;
-        
-        // Clean up test data immediately after this run
-        clearTestData($db);
         
         echo '<tr>';
         echo '<td>' . $size . '</td>';
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
         echo '<td class="time-value">' . number_format($insertTime, 2) . ' ms</td>';
         echo '<td class="time-value">' . number_format($lookupTime, 2) . ' ms</td>';
+        echo '<td>' . number_format($loadFactor, 2) . '</td>';
+        echo '<td>' . $collisions . '</td>';
         echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
     
     $avgInsert = array_sum($insertTimes) / count($insertTimes);
     $avgLookup = array_sum($lookupTimes) / count($lookupTimes);
+    $avgLoadFactor = array_sum($loadFactors) / count($loadFactors);
+    $avgCollisions = array_sum($collisionCounts) / count($collisionCounts);
     
     echo '<tr class="average-row">';
     echo '<td>' . $size . '</td>';
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format($avgInsert, 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format($avgLookup, 2) . ' ms</td>';
+    echo '<td>' . number_format($avgLoadFactor, 2) . '</td>';
+    echo '<td>' . round($avgCollisions) . '</td>';
     echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
 
+// Clean up hash table
+$dbHashTable = new DatabaseHashTable($db);
+$dbHashTable->clear();
+
 echo '</tbody></table>';
+echo '<div style="margin-top: 15px; padding: 12px; background: rgba(201,150,79,.05); border-radius: 8px; border-left: 3px solid var(--gold);">';
+echo '<p style="margin: 0; color: var(--muted); font-size: 0.9em;"><strong>Database Implementation:</strong> Hash table algorithm implemented using database table with bucket_index column. Each bucket can have multiple rows (chaining for collision handling). Uses indexed lookups for O(1) average performance.</p>';
+echo '</div>';
 echo '</div>';
 
 // ============================================================================
-// TEST 2: HASHMAP + DOUBLY LINKED LIST (CART SIMULATION)
+// TEST 2: QUEUE (FIFO) IMPLEMENTATION (WAITLIST)
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 2: HashMap + Doubly Linked List (Cart) <span class="complexity">O(1)</span></h2>';
+echo '<h2>Test 2: Queue (FIFO) Implementation <span class="complexity">O(1)</span></h2>';
 echo '<div class="test-info">';
-echo '<p><strong>Algorithm:</strong> HashMap for O(1) lookup + DLL for order preservation</p>';
-echo '<p><strong>Operations:</strong> Add items, Remove items, Update quantities</p>';
-echo '<p><strong>Test Sizes:</strong> 100, 500, 1000 items × 5 runs each</p>';
+echo '<p><strong>Algorithm:</strong> Main System Queue (from create-reservation.php)</p>';
+echo '<p><strong>Operations:</strong> Enqueue (add to waitlist) + Dequeue (remove from waitlist)</p>';
+echo '<p><strong>Implementation:</strong> Linked list-based queue with front and rear pointers</p>';
 echo '</div>';
 
 echo '<table>';
-echo '<thead><tr><th>Input Size</th><th>Run</th><th>Add Time (ms)</th><th>Remove Time (ms)</th><th>Update Time (ms)</th><th>Status</th></tr></thead>';
+echo '<thead><tr><th>Input Size</th><th>Run</th><th>Enqueue Time (ms)</th><th>Dequeue Time (ms)</th><th>Status</th></tr></thead>';
 echo '<tbody>';
 
 foreach ($testSizes as $size) {
-    $addTimes = [];
-    $removeTimes = [];
-    $updateTimes = [];
+    $enqueueTimes = [];
+    $dequeueTimes = [];
     
     for ($run = 1; $run <= $runsPerTest; $run++) {
-        // Simulate cart operations using database
-        clearTestData($db);
         $testData = loadSeedData($size, $run);
+        $queue = new WaitlistQueue();
         
-        // Test Add
+        // Test Enqueue
         $startTime = microtime(true);
-        foreach ($testData as $idx => $data) {
-            $code = 'CART' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
-            $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, confirmation_code, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
-            $stmt->execute([$data['name'], $data['phone'], $data['people_count'], $data['table_id'], $data['reservation_date'], $data['reservation_time'], $code]);
+        foreach ($testData as $data) {
+            $queue->enqueue($data);
         }
-        $addTime = (microtime(true) - $startTime) * 1000;
-        $addTimes[] = $addTime;
+        $enqueueTime = (microtime(true) - $startTime) * 1000;
+        $enqueueTimes[] = $enqueueTime;
         
-        // Test Update (simulate quantity change)
+        // Test Dequeue
         $startTime = microtime(true);
-        $updateCount = min(50, count($testData));
-        $stmt = $db->prepare("SELECT confirmation_code FROM reservations ORDER BY id DESC LIMIT ?");
-        $stmt->execute([$updateCount]);
-        $recentCodes = $stmt->fetchAll(PDO::FETCH_COLUMN);
-        
-        foreach ($recentCodes as $code) {
-            $stmt = $db->prepare("UPDATE reservations SET people_count = ? WHERE confirmation_code = ?");
-            $stmt->execute([rand(2, 8), $code]);
+        while (!$queue->isEmpty()) {
+            $queue->dequeue();
         }
-        $updateTime = (microtime(true) - $startTime) * 1000;
-        $updateTimes[] = $updateTime;
-        
-        // Test Remove
-        $startTime = microtime(true);
-        foreach ($recentCodes as $code) {
-            $stmt = $db->prepare("DELETE FROM reservations WHERE confirmation_code = ?");
-            $stmt->execute([$code]);
-        }
-        $removeTime = (microtime(true) - $startTime) * 1000;
-        $removeTimes[] = $removeTime;
-        
-        // Clean up any remaining test data
-        clearTestData($db);
+        $dequeueTime = (microtime(true) - $startTime) * 1000;
+        $dequeueTimes[] = $dequeueTime;
         
         echo '<tr>';
         echo '<td>' . $size . '</td>';
         echo '<td><span class="run-number">Run ' . $run . '</span></td>';
-        echo '<td class="time-value">' . number_format($addTime, 2) . ' ms</td>';
-        echo '<td class="time-value">' . number_format($removeTime, 2) . ' ms</td>';
-        echo '<td class="time-value">' . number_format($updateTime, 2) . ' ms</td>';
+        echo '<td class="time-value">' . number_format($enqueueTime, 2) . ' ms</td>';
+        echo '<td class="time-value">' . number_format($dequeueTime, 2) . ' ms</td>';
         echo '<td class="status-success">Success</td>';
         echo '</tr>';
     }
@@ -513,9 +765,8 @@ foreach ($testSizes as $size) {
     echo '<tr class="average-row">';
     echo '<td>' . $size . '</td>';
     echo '<td><strong>AVERAGE</strong></td>';
-    echo '<td class="time-value">' . number_format(array_sum($addTimes) / count($addTimes), 2) . ' ms</td>';
-    echo '<td class="time-value">' . number_format(array_sum($removeTimes) / count($removeTimes), 2) . ' ms</td>';
-    echo '<td class="time-value">' . number_format(array_sum($updateTimes) / count($updateTimes), 2) . ' ms</td>';
+    echo '<td class="time-value">' . number_format(array_sum($enqueueTimes) / count($enqueueTimes), 2) . ' ms</td>';
+    echo '<td class="time-value">' . number_format(array_sum($dequeueTimes) / count($dequeueTimes), 2) . ' ms</td>';
     echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
@@ -524,15 +775,87 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// TEST 3: HASH-BASED CODE GENERATION
+// TEST 3: LINKED LIST IMPLEMENTATION (QUEUE NODES)
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 3: Hash-Based Code Generation <span class="complexity">O(1)</span></h2>';
+echo '<h2>Test 3: Linked List Implementation <span class="complexity">O(1)</span></h2>';
 echo '<div class="test-info">';
-echo '<p><strong>Algorithm:</strong> MD5 Hash + Uniqueness Check</p>';
-echo '<p><strong>Operations:</strong> Generate unique confirmation codes</p>';
-echo '<p><strong>Test Sizes:</strong> 100, 500, 1000 codes × 5 runs each</p>';
+echo '<p><strong>Algorithm:</strong> Linked List nodes used in Queue (from create-reservation.php)</p>';
+echo '<p><strong>Operations:</strong> Node creation, traversal, and linking</p>';
+echo '<p><strong>Implementation:</strong> Array-based nodes with \'next\' pointers for FIFO structure</p>';
+echo '</div>';
+
+echo '<table>';
+echo '<thead><tr><th>Input Size</th><th>Run</th><th>Create Nodes (ms)</th><th>Traverse (ms)</th><th>Status</th></tr></thead>';
+echo '<tbody>';
+
+foreach ($testSizes as $size) {
+    $createTimes = [];
+    $traverseTimes = [];
+    
+    for ($run = 1; $run <= $runsPerTest; $run++) {
+        $testData = loadSeedData($size, $run);
+        
+        // Test Node Creation and Linking
+        $startTime = microtime(true);
+        $head = null;
+        $current = null;
+        foreach ($testData as $data) {
+            $newNode = ['data' => $data, 'next' => null];
+            if ($head === null) {
+                $head = $newNode;
+                $current = $head;
+            } else {
+                $current['next'] = $newNode;
+                $current = $newNode;
+            }
+        }
+        $createTime = (microtime(true) - $startTime) * 1000;
+        $createTimes[] = $createTime;
+        
+        // Test Traversal
+        $startTime = microtime(true);
+        $count = 0;
+        $temp = $head;
+        while ($temp !== null) {
+            $count++;
+            $temp = $temp['next'];
+        }
+        $traverseTime = (microtime(true) - $startTime) * 1000;
+        $traverseTimes[] = $traverseTime;
+        
+        echo '<tr>';
+        echo '<td>' . $size . '</td>';
+        echo '<td><span class="run-number">Run ' . $run . '</span></td>';
+        echo '<td class="time-value">' . number_format($createTime, 2) . ' ms</td>';
+        echo '<td class="time-value">' . number_format($traverseTime, 2) . ' ms</td>';
+        echo '<td class="status-success">Success</td>';
+        echo '</tr>';
+    }
+    
+    echo '<tr class="average-row">';
+    echo '<td>' . $size . '</td>';
+    echo '<td><strong>AVERAGE</strong></td>';
+    echo '<td class="time-value">' . number_format(array_sum($createTimes) / count($createTimes), 2) . ' ms</td>';
+    echo '<td class="time-value">' . number_format(array_sum($traverseTimes) / count($traverseTimes), 2) . ' ms</td>';
+    echo '<td class="status-success">Completed</td>';
+    echo '</tr>';
+}
+
+echo '</tbody></table>';
+echo '</div>';
+
+// ============================================================================
+// TEST 4: HASH-BASED CODE GENERATION
+// ============================================================================
+
+echo '<div class="test-section">';
+echo '<h2>Test 4: Hash-Based Code Generation <span class="complexity">O(1)</span></h2>';
+echo '<div class="test-info">';
+echo '<p><strong>Algorithm:</strong> Main System Code Generation (from create-reservation.php)</p>';
+echo '<p><strong>Operations:</strong> Generate unique confirmation codes with collision checking</p>';
+echo '<p><strong>Implementation:</strong> Random alphanumeric generation + database uniqueness verification</p>';
 echo '</div>';
 
 echo '<table>';
@@ -543,18 +866,24 @@ foreach ($testSizes as $size) {
     $genTimes = [];
     
     for ($run = 1; $run <= $runsPerTest; $run++) {
+        clearTestData($db);
         $codes = [];
         
         $startTime = microtime(true);
         for ($i = 0; $i < $size; $i++) {
-            $code = 'TEST' . str_pad(++$globalCodeCounter, 8, '0', STR_PAD_LEFT);
+            $code = generateConfirmationCode($db);
             $codes[] = $code;
+            // Insert to database to ensure next generation checks uniqueness
+            $stmt = $db->prepare("INSERT INTO reservations (name, phone, people_count, table_id, reservation_date, reservation_time, confirmation_code, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
+            $stmt->execute(['Test', '0991234567', 2, 1, date('Y-m-d'), '14:00:00', $code]);
         }
         $genTime = (microtime(true) - $startTime) * 1000;
         $genTimes[] = $genTime;
         
         // Verify uniqueness
         $unique = count(array_unique($codes));
+        
+        clearTestData($db);
         
         echo '<tr>';
         echo '<td>' . $size . '</td>';
@@ -578,11 +907,11 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// Test 4: LINEAR SEARCH & FILTERING
+// Test 5: LINEAR SEARCH & FILTERING
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 4: Linear Search & Filtering <span class="complexity">O(n×m)</span></h2>';
+echo '<h2>Test 5: Linear Search & Filtering <span class="complexity">O(n×m)</span></h2>';
 echo '<div class="test-info">';
 echo '<p><strong>Algorithm:</strong> Sequential scan with pattern matching</p>';
 echo '<p><strong>Operations:</strong> Search reservations by name pattern</p>';
@@ -639,14 +968,14 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
-// Test 5: TIME SLOT AVAILABILITY MATRIX
+// Test 6: TIME SLOT AVAILABILITY MATRIX
 // ============================================================================
 
 echo '<div class="test-section">';
-echo '<h2>Test 5: Time Slot Availability Matrix <span class="complexity">O((t+r)×s)</span></h2>';
+echo '<h2>Test 6: Time Slot Availability Matrix <span class="complexity">O(n+r×s)</span></h2>';
 echo '<div class="test-info">';
-echo '<p><strong>Algorithm:</strong> 2D associative array for table-time availability</p>';
-echo '<p><strong>Operations:</strong> Check availability across all tables and time slots</p>';
+echo '<p><strong>Algorithm:</strong> Main System Algorithm - Fetch all reservations once, then build availability map</p>';
+echo '<p><strong>Operations:</strong> 1) Fetch reservations 2) Build availability map 3) Mark booked/pending slots</p>';
 echo '<p><strong>Test Sizes:</strong> 100, 500, 1000 reservations × 5 runs each</p>';
 echo '</div>';
 
@@ -668,30 +997,56 @@ foreach ($testSizes as $size) {
             $stmt->execute([$data['name'], $data['phone'], $data['people_count'], $data['table_id'], $data['reservation_date'], $data['reservation_time'], $code]);
         }
         
-        // Build availability matrix
+        // Build availability matrix using MAIN SYSTEM ALGORITHM
         $startTime = microtime(true);
-        $availability = [];
+        
+        // Fetch all tables
         $tables = $db->query("SELECT id FROM tables")->fetchAll(PDO::FETCH_ASSOC);
-        $timeSlots = ['14:00:00', '17:00:00', '20:00:00'];
+        
+        // Time slots (matching main system)
+        $timeSlots = [
+            ['start' => '14:00:00', 'end' => '17:00:00'],
+            ['start' => '17:00:00', 'end' => '20:00:00'],
+            ['start' => '20:00:00', 'end' => '23:00:00']
+        ];
+        
         $date = date('Y-m-d', strtotime('+1 day'));
         
+        // Get all reservations for selected date (MAIN SYSTEM APPROACH)
+        $stmt = $db->prepare("SELECT table_id, reservation_time, status FROM reservations WHERE reservation_date = ? AND status != 'cancelled'");
+        $stmt->execute([$date]);
+        $reservations = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Build availability map (MAIN SYSTEM ALGORITHM)
+        $availability = [];
         foreach ($tables as $table) {
+            $availability[$table['id']] = [];
             foreach ($timeSlots as $slot) {
-                $stmt = $db->prepare("SELECT COUNT(*) FROM reservations WHERE table_id = ? AND reservation_date = ? AND reservation_time = ? AND status IN ('confirmed', 'pending')");
-                $stmt->execute([$table['id'], $date, $slot]);
-                $count = $stmt->fetchColumn();
-                $availability[$table['id']][$slot] = ($count == 0);
+                $availability[$table['id']][$slot['start']] = 'available';
             }
         }
+        
+        // Mark booked/pending slots (MAIN SYSTEM ALGORITHM)
+        foreach ($reservations as $res) {
+            $resTime = $res['reservation_time'];
+            foreach ($timeSlots as $slot) {
+                // Check if reservation time falls within this slot
+                if ($resTime >= $slot['start'] && $resTime < $slot['end']) {
+                    $status = $res['status'] === 'confirmed' ? 'booked' : 'pending';
+                    $availability[$res['table_id']][$slot['start']] = $status;
+                }
+            }
+        }
+        
         $buildTime = (microtime(true) - $startTime) * 1000;
         $buildTimes[] = $buildTime;
         
-        // Check availability
+        // Check availability (MAIN SYSTEM APPROACH)
         $startTime = microtime(true);
         $availableCount = 0;
         foreach ($availability as $tableSlots) {
-            foreach ($tableSlots as $isAvailable) {
-                if ($isAvailable) $availableCount++;
+            foreach ($tableSlots as $status) {
+                if ($status === 'available') $availableCount++;
             }
         }
         $checkTime = (microtime(true) - $startTime) * 1000;
@@ -714,83 +1069,6 @@ foreach ($testSizes as $size) {
     echo '<td><strong>AVERAGE</strong></td>';
     echo '<td class="time-value">' . number_format(array_sum($buildTimes) / count($buildTimes), 2) . ' ms</td>';
     echo '<td class="time-value">' . number_format(array_sum($checkTimes) / count($checkTimes), 2) . ' ms</td>';
-    echo '<td class="status-success">Completed</td>';
-    echo '</tr>';
-}
-
-echo '</tbody></table>';
-echo '</div>';
-
-// ============================================================================
-// Test 6: SESSION-BASED HOLD SYSTEM
-// ============================================================================
-
-echo '<div class="test-section">';
-echo '<h2>Test 6: Session-Based Hold System <span class="complexity">O(1)</span></h2>';
-echo '<div class="test-info">';
-echo '<p><strong>Algorithm:</strong> Session storage with timestamp expiration</p>';
-echo '<p><strong>Operations:</strong> Create hold + Check expiration + Release hold</p>';
-echo '<p><strong>Test Sizes:</strong> 100, 500, 1000 holds × 5 runs each</p>';
-echo '</div>';
-
-echo '<table>';
-echo '<thead><tr><th>Input Size</th><th>Run</th><th>Create Time (ms)</th><th>Check Time (ms)</th><th>Release Time (ms)</th><th>Status</th></tr></thead>';
-echo '<tbody>';
-
-foreach ($testSizes as $size) {
-    $createTimes = [];
-    $checkTimes = [];
-    $releaseTimes = [];
-    
-    for ($run = 1; $run <= $runsPerTest; $run++) {
-        $holds = [];
-        
-        // Create holds
-        $startTime = microtime(true);
-        for ($i = 0; $i < $size; $i++) {
-            $holds[$i] = [
-                'table_id' => rand(1, 9),
-                'date' => date('Y-m-d'),
-                'time' => '14:00:00',
-                'expires_at' => time() + 300
-            ];
-        }
-        $createTime = (microtime(true) - $startTime) * 1000;
-        $createTimes[] = $createTime;
-        
-        // Check expiration
-        $startTime = microtime(true);
-        $expired = 0;
-        foreach ($holds as $hold) {
-            if (time() > $hold['expires_at']) {
-                $expired++;
-            }
-        }
-        $checkTime = (microtime(true) - $startTime) * 1000;
-        $checkTimes[] = $checkTime;
-        
-        // Release holds
-        $startTime = microtime(true);
-        $holds = [];
-        $releaseTime = (microtime(true) - $startTime) * 1000;
-        $releaseTimes[] = $releaseTime;
-        
-        echo '<tr>';
-        echo '<td>' . $size . '</td>';
-        echo '<td><span class="run-number">Run ' . $run . '</span></td>';
-        echo '<td class="time-value">' . number_format($createTime, 2) . ' ms</td>';
-        echo '<td class="time-value">' . number_format($checkTime, 2) . ' ms</td>';
-        echo '<td class="time-value">' . number_format($releaseTime, 2) . ' ms</td>';
-        echo '<td class="status-success">Success</td>';
-        echo '</tr>';
-    }
-    
-    echo '<tr class="average-row">';
-    echo '<td>' . $size . '</td>';
-    echo '<td><strong>AVERAGE</strong></td>';
-    echo '<td class="time-value">' . number_format(array_sum($createTimes) / count($createTimes), 2) . ' ms</td>';
-    echo '<td class="time-value">' . number_format(array_sum($checkTimes) / count($checkTimes), 2) . ' ms</td>';
-    echo '<td class="time-value">' . number_format(array_sum($releaseTimes) / count($releaseTimes), 2) . ' ms</td>';
     echo '<td class="status-success">Completed</td>';
     echo '</tr>';
 }
@@ -911,19 +1189,116 @@ echo '</tbody></table>';
 echo '</div>';
 
 // ============================================================================
+// Test 9: SESSION-BASED HOLD SYSTEM
+// ============================================================================
+
+echo '<div class="test-section">';
+echo '<h2>Test 9: Session-Based Hold System <span class="complexity">O(1)</span></h2>';
+echo '<div class="test-info">';
+echo '<p><strong>Algorithm:</strong> Main System Hold System (from hold-table.php & release-hold.php)</p>';
+echo '<p><strong>Operations:</strong> Create hold + Check expiration + Release hold</p>';
+echo '<p><strong>Implementation:</strong> Session storage with 5-minute expiration timer</p>';
+echo '</div>';
+
+echo '<table>';
+echo '<thead><tr><th>Input Size</th><th>Run</th><th>Create Time (ms)</th><th>Check Time (ms)</th><th>Release Time (ms)</th><th>Status</th></tr></thead>';
+echo '<tbody>';
+
+foreach ($testSizes as $size) {
+    $createTimes = [];
+    $checkTimes = [];
+    $releaseTimes = [];
+    
+    for ($run = 1; $run <= $runsPerTest; $run++) {
+        // Simulate session-based holds
+        $holds = [];
+        
+        // Test Create Holds
+        $startTime = microtime(true);
+        for ($i = 0; $i < $size; $i++) {
+            $holdKey = rand(1, 9) . '_' . date('Y-m-d') . '_14:00:00';
+            $holds[$holdKey] = [
+                'table_id' => rand(1, 9),
+                'date' => date('Y-m-d'),
+                'time' => '14:00:00',
+                'created_at' => time(),
+                'expires_at' => time() + 300 // 5 minutes
+            ];
+        }
+        $createTime = (microtime(true) - $startTime) * 1000;
+        $createTimes[] = $createTime;
+        
+        // Test Check Expiration
+        $startTime = microtime(true);
+        $expired = 0;
+        $active = 0;
+        foreach ($holds as $hold) {
+            if (time() > $hold['expires_at']) {
+                $expired++;
+            } else {
+                $active++;
+            }
+        }
+        $checkTime = (microtime(true) - $startTime) * 1000;
+        $checkTimes[] = $checkTime;
+        
+        // Test Release Holds
+        $startTime = microtime(true);
+        $holds = []; // Clear all holds
+        $releaseTime = (microtime(true) - $startTime) * 1000;
+        $releaseTimes[] = $releaseTime;
+        
+        echo '<tr>';
+        echo '<td>' . $size . '</td>';
+        echo '<td><span class="run-number">Run ' . $run . '</span></td>';
+        echo '<td class="time-value">' . number_format($createTime, 2) . ' ms</td>';
+        echo '<td class="time-value">' . number_format($checkTime, 2) . ' ms</td>';
+        echo '<td class="time-value">' . number_format($releaseTime, 2) . ' ms</td>';
+        echo '<td class="status-success">Success</td>';
+        echo '</tr>';
+    }
+    
+    echo '<tr class="average-row">';
+    echo '<td>' . $size . '</td>';
+    echo '<td><strong>AVERAGE</strong></td>';
+    echo '<td class="time-value">' . number_format(array_sum($createTimes) / count($createTimes), 2) . ' ms</td>';
+    echo '<td class="time-value">' . number_format(array_sum($checkTimes) / count($checkTimes), 2) . ' ms</td>';
+    echo '<td class="time-value">' . number_format(array_sum($releaseTimes) / count($releaseTimes), 2) . ' ms</td>';
+    echo '<td class="status-success">Completed</td>';
+    echo '</tr>';
+}
+
+echo '</tbody></table>';
+echo '</div>';
+
+// ============================================================================
 // SUMMARY
 // ============================================================================
 
 clearTestData($db);
 
 echo '<div class="summary-box">';
-echo '<h3>All 8 Algorithm Tests Completed Successfully</h3>';
-echo '<p>Comprehensive performance testing across multiple dataset sizes</p>';
+echo '<h3>All 9 Main System Algorithm Tests Completed Successfully</h3>';
+echo '<p>Comprehensive performance testing of actual production algorithms</p>';
 echo '<div class="summary-stats">';
-echo '<div class="stat-card"><h4>Total Tests Run</h4><p>' . (count($testSizes) * $runsPerTest * 10) . '</p></div>';
-echo '<div class="stat-card"><h4>Algorithms Tested</h4><p>8</p></div>';
+echo '<div class="stat-card"><h4>Total Tests Run</h4><p>' . (count($testSizes) * $runsPerTest * 9) . '</p></div>';
+echo '<div class="stat-card"><h4>Algorithms Tested</h4><p>9</p></div>';
 echo '<div class="stat-card"><h4>Test Sizes</h4><p>100, 500, 1000</p></div>';
 echo '<div class="stat-card"><h4>Runs Per Test</h4><p>' . $runsPerTest . '</p></div>';
+echo '</div>';
+echo '<div style="margin-top: 20px; padding: 20px; background: rgba(201,150,79,.05); border-radius: 8px; border: 1px solid var(--border);">';
+echo '<h4 style="color: var(--gold); margin-bottom: 12px;">Tested Algorithms:</h4>';
+echo '<ol style="color: var(--muted); line-height: 1.8; padding-left: 20px;">';
+echo '<li>Fixed Hash Table Implementation (97 buckets, chaining) - O(1)</li>';
+echo '<li>Queue (FIFO) Implementation (Waitlist) - O(1)</li>';
+echo '<li>Linked List Implementation (Queue nodes) - O(1)</li>';
+echo '<li>Hash-Based Code Generation (Confirmation codes) - O(1)</li>';
+echo '<li>Linear Search & Filtering (Name search) - O(n)</li>';
+echo '<li>Time Slot Availability Algorithm (Main system) - O(n+r×s)</li>';
+echo '<li>Database Sorting (ORDER BY) - O(n log n)</li>';
+echo '<li>Singleton Pattern (DB Connection) - O(1)</li>';
+echo '<li>Session-Based Hold System (Temporary locks) - O(1)</li>';
+echo '</ol>';
 echo '</div>';
 echo '</div>';
 

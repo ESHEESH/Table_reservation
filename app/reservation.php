@@ -291,11 +291,20 @@ if (!$table) {
         // ===== TABLE HOLD TIMER (5 MINUTES) =====
         let holdTimer;
         let holdExpiresAt;
+        const fromMenu = <?php echo isset($_GET['from_menu']) ? 'true' : 'false'; ?>;
         
         async function initializeHold() {
             const tableId = <?php echo $tableId; ?>;
             const date = '<?php echo $selectedDate; ?>';
             const time = '<?php echo $selectedTime; ?>';
+            
+            // If coming from menu, the hold should already exist
+            if (fromMenu) {
+                // Set a default 5-minute timer
+                holdExpiresAt = Math.floor(Date.now() / 1000) + 300;
+                startTimer();
+                return;
+            }
             
             try {
                 const response = await fetch('api/hold-table.php', {
@@ -315,6 +324,11 @@ if (!$table) {
                 }
             } catch (error) {
                 console.error('Failed to hold table:', error);
+                // Continue anyway if coming from menu
+                if (fromMenu) {
+                    holdExpiresAt = Math.floor(Date.now() / 1000) + 300;
+                    startTimer();
+                }
             }
         }
         

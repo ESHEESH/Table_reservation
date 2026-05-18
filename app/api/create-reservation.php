@@ -306,7 +306,7 @@ try {
         'confirmation_code' => $confirmationCode,
         'reservation_id' => $reservationId,
         'table_id' => $tableId,
-        'redirect_url' => '../preorder-prompt.php?code=' . urlencode($confirmationCode) . '&table_id=' . $tableId
+        'redirect_url' => 'preorder-prompt.php?code=' . urlencode($confirmationCode) . '&table_id=' . $tableId
     ]);
     
 } catch (PDOException $e) {

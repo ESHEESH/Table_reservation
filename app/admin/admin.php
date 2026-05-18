@@ -272,14 +272,14 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
 .date-sub{font-size:.72rem;color:var(--muted);}
 
 /* STATUS PILLS */
-.pill{display:inline-flex;align-items:center;gap:.3rem;padding:.18rem .6rem;border-radius:50px;font-size:.68rem;border:1px solid;white-space:nowrap;}
-.pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0;}
-.pill-pending{color:var(--amber);border-color:rgba(230,126,34,.3);background:rgba(230,126,34,.07);}
-.pill-confirmed{color:var(--green);border-color:rgba(61,153,112,.3);background:rgba(61,153,112,.07);}
-.pill-cancelled{color:var(--red);border-color:rgba(192,57,43,.3);background:rgba(192,57,43,.07);}
-.pill-available{color:var(--green);border-color:rgba(61,153,112,.3);background:rgba(61,153,112,.07);}
-.pill-occupied{color:var(--red);border-color:rgba(192,57,43,.3);background:rgba(192,57,43,.07);}
-.pill-reserved{color:var(--amber);border-color:rgba(230,126,34,.3);background:rgba(230,126,34,.07);}
+.pill{display:inline-flex;align-items:center;gap:.4rem;padding:.25rem .7rem;border-radius:6px;font-size:.72rem;border:1px solid;white-space:nowrap;position:relative;z-index:1;font-weight:500;}
+.pill::before{content:'●';font-size:1rem;line-height:1;flex-shrink:0;}
+.pill-pending{color:var(--amber);border-color:rgba(230,126,34,.25);background:rgba(230,126,34,.08);}
+.pill-confirmed{color:var(--green);border-color:rgba(61,153,112,.25);background:rgba(61,153,112,.08);}
+.pill-cancelled{color:var(--red);border-color:rgba(192,57,43,.25);background:rgba(192,57,43,.08);}
+.pill-available{color:var(--green);border-color:rgba(61,153,112,.25);background:rgba(61,153,112,.08);}
+.pill-occupied{color:var(--red);border-color:rgba(192,57,43,.25);background:rgba(192,57,43,.08);}
+.pill-reserved{color:var(--amber);border-color:rgba(230,126,34,.25);background:rgba(230,126,34,.08);}
 
 /* ACTIONS */
 .act-row{display:flex;align-items:center;gap:.3rem;}
@@ -533,7 +533,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
       <td><div class="name-cell"><?= htmlspecialchars($r['name']) ?></div><div class="phone-cell"><?= htmlspecialchars($r['phone']) ?></div></td>
       <td><?= htmlspecialchars($r['table_number'] ?? '—') ?> <span style="color:var(--muted);font-size:.72rem;">(<?= $r['capacity'] ?? '?' ?> seats)</span></td>
       <td><div class="date-cell"><?= date('M j, Y', strtotime($r['reservation_date'])) ?></div><div class="date-sub"><?= date('g:i A', strtotime($r['reservation_time'])) ?></div></td>
-      <td><span class="pill pill-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
+      <td><span class="pill pill-<?= $r['status'] ?>" style="min-width:85px;justify-content:center;"><?= ucfirst($r['status']) ?></span></td>
       <td>
         <div class="act-row">
           <form method="POST" style="display:inline;">
@@ -600,7 +600,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Montserrat',sans-serif
           </svg>
         </button>
       <?php else: ?><span style="color:var(--muted2);">—</span><?php endif; ?></td>
-      <td><span class="pill pill-<?= $r['status'] ?>"><?= $r['status'] ?></span></td>
+      <td><span class="pill pill-<?= $r['status'] ?>" style="min-width:85px;justify-content:center;"><?= ucfirst($r['status']) ?></span></td>
       <td>
         <div class="act-row">
           <form method="POST" style="display:inline;">
