@@ -519,7 +519,7 @@ $total = $subtotal + $tax;
             
             <!-- Actions -->
             <div class="confirmation-actions">
-                <a href="index.php" class="btn btn-primary">Make Another Reservation</a>
+                <a href="index.php" class="btn btn-primary" onclick="sessionStorage.clear();">Make Another Reservation</a>
                 <button class="btn btn-secondary" onclick="window.print()">Print Receipt</button>
             </div>
         </div>
@@ -537,9 +537,14 @@ $total = $subtotal + $tax;
 
     <script src="assets/js/main.js"></script>
     <script>
-        // Clear cart data after successful reservation
+        // Clear all reservation-related data after successful confirmation
         localStorage.removeItem('sakura_cart');
         localStorage.removeItem('sakura_cart_total');
+        localStorage.removeItem('sakura_reservation_form');
+        
+        // Mark that a reservation was just completed
+        sessionStorage.setItem('reservation_completed', 'true');
+        sessionStorage.setItem('confirmation_code', '<?php echo htmlspecialchars($reservation['confirmation_code']); ?>');
         
         // Receipt viewer functions
         function viewReceipt(url) {

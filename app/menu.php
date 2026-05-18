@@ -160,7 +160,7 @@ $imageMap = [
                 &middot; ₱<?php echo number_format($table['price'], 2); ?>
             </div>
             <div style="margin-top: 12px;">
-                <a href="reservation.php?table_id=<?php echo $tableId; ?><?php echo $selectedDate ? '&date='.urlencode($selectedDate) : ''; ?><?php echo $selectedTime ? '&time='.urlencode($selectedTime) : ''; ?>&from_menu=1" class="btn btn-primary" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
+                <a href="reservation.php?table_id=<?php echo $tableId; ?><?php echo $selectedDate ? '&date='.urlencode($selectedDate) : ''; ?><?php echo $selectedTime ? '&time='.urlencode($selectedTime) : ''; ?>&from_menu=1" class="btn btn-primary" id="skipToReservationBtn" style="display: inline-block; padding: 10px 20px; text-decoration: none;">
                     Skip to Reservation →
                 </a>
             </div>
@@ -250,7 +250,7 @@ $imageMap = [
         </div>
         
         <div class="panel-buttons">
-            <a href="reservation.php?table_id=<?php echo $tableId; ?><?php echo $selectedDate ? '&date='.urlencode($selectedDate) : ''; ?><?php echo $selectedTime ? '&time='.urlencode($selectedTime) : ''; ?>&from_menu=1" class="btn btn-primary btn-full">
+            <a href="reservation.php?table_id=<?php echo $tableId; ?><?php echo $selectedDate ? '&date='.urlencode($selectedDate) : ''; ?><?php echo $selectedTime ? '&time='.urlencode($selectedTime) : ''; ?>&from_menu=1" class="btn btn-primary btn-full" id="proceedToReservationBtn">
                 Proceed to Reservation
             </a>
             <button class="btn btn-glass btn-full btn-clear-cart">Clear Cart</button>
@@ -260,6 +260,38 @@ $imageMap = [
     <script src="assets/js/main.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // Check if user just completed a reservation
+            const reservationCompleted = sessionStorage.getItem('reservation_completed');
+            
+            if (reservationCompleted === 'true') {
+                // Update buttons to start new reservation instead
+                const skipBtn = document.getElementById('skipToReservationBtn');
+                const proceedBtn = document.getElementById('proceedToReservationBtn');
+                
+                if (skipBtn) {
+                    skipBtn.href = 'tables.php';
+                    skipBtn.innerHTML = 'Start New Reservation →';
+                }
+                
+                if (proceedBtn) {
+                    proceedBtn.href = 'tables.php';
+                    proceedBtn.textContent = 'Start New Reservation';
+                }
+                
+                // Show info message
+                const infoDiv = document.createElement('div');
+                infoDiv.style.cssText = 'position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(201,150,79,.15);border:1px solid rgba(201,150,79,.4);color:#c9964f;padding:16px 24px;border-radius:12px;z-index:1000;max-width:500px;text-align:center;';
+                infoDiv.innerHTML = '<strong>Reservation Complete!</strong><br>Your previous reservation has been confirmed. To make another reservation, please select a new table.';
+                document.body.appendChild(infoDiv);
+                
+                // Clear the flag after 10 seconds
+                setTimeout(() => {
+                    sessionStorage.removeItem('reservation_completed');
+                    sessionStorage.removeItem('confirmation_code');
+                    infoDiv.remove();
+                }, 10000);
+            }
+            
             // Clear cart button - using cart.clear() which shows toast
             document.querySelector('.btn-clear-cart')?.addEventListener('click', () => {
                 if (cart && cart.items.length > 0) {

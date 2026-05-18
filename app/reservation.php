@@ -100,13 +100,13 @@ if (!$table) {
     </header>
 
     <!-- Hold Timer Banner -->
-    <div class="hold-timer-banner" id="holdTimerBanner">
-        <div class="hold-timer-content">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div class="hold-timer-banner" id="holdTimerBanner" style="max-width:1200px;margin:0 auto 30px;padding:0 40px;">
+        <div class="hold-timer-content" style="background:linear-gradient(135deg,rgba(201,150,79,.15),rgba(201,150,79,.05));border:1px solid rgba(201,150,79,.3);border-radius:12px;padding:16px 24px;display:flex;align-items:center;justify-content:center;gap:12px;font-size:15px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;color:#c9964f;">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12 6 12 12 16 14"/>
             </svg>
-            <span>We're holding this table for you for <strong id="timerDisplay">5:00</strong> minutes</span>
+            <span>We're holding this table for you for <strong id="timerDisplay" style="color:#c9964f;font-weight:700;">5:00</strong> minutes</span>
         </div>
     </div>
 
@@ -330,6 +330,19 @@ if (!$table) {
 
     <script src="assets/js/main.js"></script>
     <script>
+        // Check if user just completed a reservation and is trying to go back
+        const reservationCompleted = sessionStorage.getItem('reservation_completed');
+        if (reservationCompleted === 'true') {
+            const confirmCode = sessionStorage.getItem('confirmation_code');
+            if (confirm('You already have a confirmed reservation (Code: ' + confirmCode + '). Would you like to start a new reservation?')) {
+                sessionStorage.removeItem('reservation_completed');
+                sessionStorage.removeItem('confirmation_code');
+                window.location.href = 'tables.php';
+            } else {
+                window.location.href = 'confirmation.php?code=' + confirmCode;
+            }
+        }
+        
         // ===== TABLE HOLD TIMER SYSTEM =====
         let holdTimer;
         let holdExpiresAt;
